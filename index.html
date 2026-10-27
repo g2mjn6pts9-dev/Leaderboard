@@ -164,9 +164,22 @@
     border-radius: 999px; background: rgba(0,0,0,.62);
     color: #fff; letter-spacing: .3px; text-transform: uppercase;
   }
+  .cover .favorite-btn {
+    position: absolute; top: 8px; left: 8px; z-index: 3;
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.3);
+    background: rgba(10,8,18,.45); color: #fff;
+    font-size: 15px; cursor: pointer; display: grid; place-items: center;
+  }
+  .cover .favorite-btn.on { color: #ffd166; }
   .cover .initial { position: relative; z-index: 1; }
   .game-card h3 { font-size: 14px; margin-top: 8px; font-weight: 700; line-height: 1.3; }
+  .game-card .meta-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .game-card .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game-card .recent-tag {
+    font-size: 10px; color: var(--green); font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase;
+  }
   .game-card .stars { font-size: 13px; margin-top: 4px; color: var(--gold); letter-spacing: 1px; }
   .game-card .stars .off { color: #3a3558; }
 
@@ -376,7 +389,7 @@
     </div>
     <div class="modal-actions">
       <span></span>
-      <button class="btn" onclick="addManual()">Add to shelf</button>
+      <button class="btn" onclick="addManual()">Add to library</button>
     </div>
   </div>
 </div>
@@ -613,6 +626,59 @@ function mapRawg(g) {
   };
 }
 
+function uniquePlatformOptions() {
+  const set = new Set();
+  entries.forEach(e => {
+    const labels = platformLabels(e.platform);
+    labels.forEach(label => set.add(label));
+  });
+  return [...set].sort();
+}
+
+function platformLabels(platform) {
+  const raw = String(platform || "");
+  if (!raw.trim()) return [];
+  return raw.split(/[,&/|]+/).map(p => p.trim()).filter(Boolean)
+    .map(value => normalizePlatformLabel(value))
+    .filter(Boolean)
+    .filter((value, index, arr) => arr.indexOf(value) === index);
+}
+
+function normalizePlatformLabel(value) {
+  const v = String(value || "").trim();
+  const lower = v.toLowerCase();
+  if (!v) return "";
+  if (/playstation|ps\s*\d|ps\b/i.test(v)) return "PlayStation";
+  if (/xbox|series/i.test(v)) return "Xbox";
+  if (/switch|nintendo/i.test(v)) return "Switch";
+  if (/pc|windows|linux|mac/i.test(v)) return "PC";
+  if (/multi|cross-platform/i.test(v)) return "Multi";
+  return v;
+}
+
+function matchesPlatformFilter(entry, filter) {
+  const labels = platformLabels(entry.platform);
+  if (!labels.length) return false;
+  if (filter === "PlayStation") return labels.some(label => /PlayStation|PS/.test(label));
+  if (filter === "Xbox") return labels.some(label => /Xbox/.test(label));
+  if (filter === "Switch") return labels.some(label => /Switch/.test(label));
+  if (filter === "PC") return labels.some(label => /PC/.test(label));
+  if (filter === "Multi") return labels.some(label => /Multi/.test(label));
+  return labels.includes(filter) || String(entry.platform || "").toLowerCase().includes(filter.toLowerCase());
+}
+
+function isRecent(ts) {
+  if (!ts) return false;
+  const ms = Number(ts);
+  if (!Number.isFinite(ms)) return false;
+  return (Date.now() - ms) <= 30 * 24 * 60 * 60 * 1000;
+}
+
+function touchLastPlayed(entry) {
+  if (!entry) return;
+  entry.lastPlayed = Date.now();
+}
+
 let searchTimer = null;
 let searchAbort = null;
 
@@ -713,13 +779,19 @@ function getVisibleEntries() {
   const filtered = entries.filter(e => {
     if (tab === "wishlist") return Boolean(e.wishlist);
     if (filter === "Wishlist") return Boolean(e.wishlist);
-    if (filter !== "All" && e.status !== filter) return false;
+    if (filter === "Favorites") return Boolean(e.favorite);
+    if (filter === "Recent") return Boolean(e.lastPlayed && isRecent(e.lastPlayed));
+    if (STATUSES.includes(filter)) return e.status === filter;
+    if (filter !== "All") return matchesPlatformFilter(e, filter);
     if (!q) return true;
     return [e.title, e.platform, e.status, e.year, e.review, e.notes].join(" ").toLowerCase().includes(q);
   });
 
   const statusOrder = STATUSES;
-  return filtered.sort((a, b) => {
+  return filtered.filter(e => {
+    if (!q) return true;
+    return [e.title, e.platform, e.status, e.year, e.review, e.notes].join(" ").toLowerCase().includes(q);
+  }).sort((a, b) => {
     switch (sortMode) {
       case "title":
         return String(a.title).localeCompare(String(b.title)) || (b.added || 0) - (a.added || 0);
@@ -810,7 +882,9 @@ function renderLeaderboard() {
 }
 
 function renderFilters() {
-  const opts = ["All"].concat(STATUSES.filter(s => entries.some(e => e.status === s)));
+  const baseOptions = ["All", "Favorites", "Recent"].concat(STATUSES);
+  const platformOptions = uniquePlatformOptions();
+  const opts = baseOptions.concat(platformOptions.filter(opt => !baseOptions.includes(opt)));
   if (entries.some(e => e.wishlist)) opts.push("Wishlist");
   document.getElementById("filters").innerHTML = opts.map(o =>
     '<button class="' + (o === filter ? "active" : "") + '" onclick="setFilter(\'' + o + '\')">' + o + '</button>'
@@ -830,14 +904,17 @@ function renderShelf() {
     const inner = img
       ? '<img src="' + img + '" alt="" loading="lazy"><div class="shade"></div>'
       : '<div class="shade"></div>';
+    const favoriteBtn = '<button class="favorite-btn ' + (e.favorite ? 'on' : '') + '" onclick="toggleFavorite(event, ' + e.id + ')">' + (e.favorite ? '★' : '☆') + '</button>';
+    const recentTag = e.lastPlayed && isRecent(e.lastPlayed) ? '<span class="recent-tag">' + timeAgo(e.lastPlayed) + '</span>' : '';
     return '<div class="game-card" onclick="openDetail(' + e.id + ')">' +
       '<div class="cover" style="' + bg + '">' +
+        favoriteBtn +
         '<span class="badge" style="color:' + STATUS_COLORS[e.status] + '">' + esc(e.status) + '</span>' +
         inner +
         (img ? "" : '<span class="initial">' + esc(e.title.slice(0, 2).toUpperCase()) + '</span>') +
       '</div>' +
       '<h3>' + esc(e.title) + '</h3>' +
-      '<div class="meta">' + esc(e.year || "") + (e.hours ? " · " + esc(e.hours) + "h" : "") + '</div>' +
+      '<div class="meta-row"><div class="meta">' + esc(e.year || "") + (e.hours ? " · " + esc(e.hours) + "h" : "") + '</div>' + recentTag + '</div>' +
       (e.rating ? '<div class="stars">' + stars(e.rating) + '</div>' : "") +
     '</div>';
   }).join("");
@@ -899,6 +976,16 @@ function timeAgo(ts) {
   return Math.floor(h / 24) + "d ago";
 }
 
+function toggleFavorite(event, id) {
+  event.stopPropagation();
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  e.favorite = !e.favorite;
+  touchLastPlayed(e);
+  persist(); render();
+  toast(e.favorite ? "Added to favorites" : "Removed from favorites");
+}
+
 function openAdd() {
   document.getElementById("addOverlay").classList.add("open");
   document.getElementById("searchInput").value = "";
@@ -938,7 +1025,8 @@ function addEntry(title, year, platform, status, extra) {
     id: now, title, year, platform, status,
     rating: 0, review: "", notes: "", hours: "", added: now,
     image: extra.image || "", rawgId: extra.rawgId || null, slug: extra.slug || "",
-    wishlist: false, history: [{ type: "added", detail: "Added to shelf", at: now }]
+    wishlist: false, favorite: false, lastPlayed: now,
+    history: [{ type: "added", detail: "Added to library", at: now }]
   };
   entries.unshift(e);
   myActivity.unshift({ at: now, game: title, type: "started" });
@@ -982,6 +1070,7 @@ function setStatus(s) {
   if (!e) return;
   const prev = e.status;
   e.status = s;
+  touchLastPlayed(e);
   if (prev !== s) recordHistory(e, "status", "Status changed to " + s);
   persist(); renderStatusRow(s); render();
   if (s === "Completed" && e.rating === 0) toast("Finished! Now rate it out of 10.");
@@ -1000,6 +1089,7 @@ function renderStars() {
       pendingRating = (pendingRating === i) ? 0 : i;
       e.rating = pendingRating;
       if (prev !== e.rating) recordHistory(e, "rating", "Rating set to " + e.rating + "/10");
+      touchLastPlayed(e);
       persist(); renderStars(); render();
       toast(pendingRating ? "Rated " + pendingRating + "/10" : "Rating cleared");
     };
@@ -1020,6 +1110,7 @@ function saveHours() {
   const e = entries.find(x => x.id === currentId);
   if (!e) return;
   e.hours = document.getElementById("dHours").value.trim();
+  touchLastPlayed(e);
   recordHistory(e, "hours", "Hours updated to " + e.hours);
   persist(); render();
 }
@@ -1029,6 +1120,7 @@ function saveReview() {
   if (!e) return;
   e.review = document.getElementById("dReview").value;
   if (e.review.trim()) recordHistory(e, "review", "Review updated");
+  touchLastPlayed(e);
   persist(); render();
 }
 
@@ -1037,6 +1129,7 @@ function saveNotes() {
   if (!e) return;
   e.notes = document.getElementById("dNotes").value;
   if (e.notes.trim()) recordHistory(e, "notes", "Notes updated");
+  touchLastPlayed(e);
   persist(); render();
 }
 
@@ -1044,6 +1137,7 @@ function toggleWishlist() {
   const e = entries.find(x => x.id === currentId);
   if (!e) return;
   e.wishlist = !e.wishlist;
+  touchLastPlayed(e);
   recordHistory(e, "wishlist", e.wishlist ? "Added to wishlist" : "Removed from wishlist");
   persist(); renderWishlistButton(); render();
 }
