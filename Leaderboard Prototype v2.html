@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>leaderboard</title>
+<style>
+  :root {
+    --bg: #14121f;
+    --surface: #1c1930;
+    --surface2: #24203d;
+    --border: #322c52;
+    --text: #eceaf6;
+    --muted: #9a94b8;
+    --accent: #6d4aff;
+    --accent-hover: #7f5cff;
+    --green: #3fbf7f;
+    --gold: #ffc94d;
+    --red: #e05b5b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(20,18,31,.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .logo { font-size: 22px; font-weight: 800; letter-spacing: -.5px; color: var(--accent); }
+  .logo span { color: var(--text); }
+  nav { display: flex; gap: 4px; }
+  nav button {
+    background: none; border: none; color: var(--muted);
+    font-size: 15px; font-weight: 600; padding: 8px 14px;
+    border-radius: 8px; cursor: pointer;
+  }
+  nav button.active { color: var(--text); background: var(--surface2); }
+  nav button:hover:not(.active) { color: var(--text); }
+  .header-right { display: flex; gap: 8px; align-items: center; }
+  .icon-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); width: 38px; height: 38px; border-radius: 10px;
+    font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--accent); }
+  .icon-btn.live { color: var(--green); border-color: rgba(63,191,127,.45); }
+  .btn {
+    background: var(--accent); color: #fff; border: none;
+    font-size: 15px; font-weight: 700; padding: 9px 18px;
+    border-radius: 10px; cursor: pointer;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 20px 40px; width: 100%; flex: 1; }
+
+  .source-bar {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--muted); margin-bottom: 18px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .dot.on { background: var(--green); }
+  .dot.off { background: var(--gold); }
+
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat-chip {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 16px; font-size: 14px; color: var(--muted);
+  }
+  .stat-chip b { color: var(--text); font-size: 16px; margin-left: 6px; }
+
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .filters button {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); padding: 6px 14px; border-radius: 999px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .filters button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .shelf { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .game-card { cursor: pointer; transition: transform .12s ease; }
+  .game-card:hover { transform: translateY(-3px); }
+  .cover {
+    width: 100%; aspect-ratio: 3/4; border-radius: 12px;
+    display: flex; align-items: flex-end; justify-content: flex-start;
+    padding: 10px; font-weight: 800; font-size: 34px;
+    color: rgba(255,255,255,.85); position: relative; overflow: hidden;
+    border: 1px solid var(--border); background-size: cover; background-position: center;
+  }
+  .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cover .shade {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(10,8,18,.72) 0%, rgba(10,8,18,0) 55%);
+  }
+  .cover .badge {
+    position: absolute; top: 8px; right: 8px; z-index: 2;
+    font-size: 10px; font-weight: 700; padding: 3px 8px;
+    border-radius: 999px; background: rgba(0,0,0,.62);
+    color: #fff; letter-spacing: .3px; text-transform: uppercase;
+  }
+  .cover .initial { position: relative; z-index: 1; }
+  .game-card h3 { font-size: 14px; margin-top: 8px; font-weight: 700; line-height: 1.3; }
+  .game-card .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game-card .stars { font-size: 13px; margin-top: 4px; color: var(--gold); letter-spacing: 1px; }
+  .game-card .stars .off { color: #3a3558; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state h2 { color: var(--text); margin-bottom: 8px; }
+
+  .feed { display: flex; flex-direction: column; gap: 14px; max-width: 660px; }
+  .activity {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 18px;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px; color: #fff; flex-shrink: 0;
+  }
+  .activity .who { font-weight: 700; font-size: 14px; }
+  .activity .who span { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 6px; }
+  .activity .game-link { color: var(--accent); font-weight: 700; font-size: 14px; margin: 2px 0 4px; }
+  .activity p.review { font-size: 14px; line-height: 1.55; color: #cfccdf; }
+  .activity .stars { color: var(--gold); font-size: 14px; letter-spacing: 1px; }
+
+  .overlay {
+    position: fixed; inset: 0; background: rgba(10,8,18,.78);
+    display: none; align-items: flex-start; justify-content: center;
+    z-index: 50; padding: 40px 16px; overflow-y: auto;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; width: 100%; max-width: 490px; padding: 24px;
+  }
+  .modal h2 { font-size: 18px; margin-bottom: 4px; }
+  .modal .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; line-height: 1.5; }
+  .modal input[type=text], .modal textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); border-radius: 10px; padding: 10px 12px;
+    font-size: 14px; font-family: inherit; margin-bottom: 4px;
+  }
+  .modal textarea { min-height: 90px; resize: vertical; }
+  .modal label {
+    display: block; font-size: 12px; font-weight: 700; color: var(--muted);
+    margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .close-x {
+    float: right; background: none; border: none; color: var(--muted);
+    font-size: 22px; cursor: pointer; line-height: 1;
+  }
+  .status-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .status-row button {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); padding: 6px 12px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .status-row button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .star-rating { display: flex; gap: 4px; font-size: 26px; cursor: pointer; user-select: none; }
+  .star-rating span { color: #3a3558; transition: color .1s; }
+  .star-rating span.on { color: var(--gold); }
+  .modal-actions { display: flex; justify-content: space-between; margin-top: 22px; gap: 10px; }
+  .btn.secondary { background: var(--surface2); color: var(--text); }
+  .btn.danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .hint.warn { color: var(--gold); }
+
+  .results { max-height: 280px; overflow-y: auto; margin-bottom: 6px; }
+  .results button.result {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 10px; border-radius: 10px; margin-bottom: 6px;
+    font-size: 14px; cursor: pointer; text-align: left;
+  }
+  .results button.result:hover { border-color: var(--accent); }
+  .results .thumb {
+    width: 44px; height: 59px; border-radius: 6px; flex-shrink: 0;
+    background-size: cover; background-position: center; background-color: var(--surface2);
+  }
+  .results .rt { flex: 1; min-width: 0; }
+  .results .rt b { display: block; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .results .yr { color: var(--muted); font-size: 12px; }
+  .toggle-manual {
+    background: none; border: none; color: var(--accent);
+    font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0; margin-bottom: 8px;
+  }
+  .manual-fields { display: none; }
+  .manual-fields.show { display: block; }
+
+  .toast {
+    position: fixed; bottom: 74px; left: 50%; transform: translateX(-50%);
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 12px 22px; border-radius: 12px;
+    font-size: 14px; font-weight: 600; z-index: 100;
+    opacity: 0; transition: opacity .25s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 20px; text-align: center;
+    font-size: 12px; color: var(--muted);
+  }
+  footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 620px) {
+    .shelf { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+    header { padding: 12px 14px; }
+    .logo { font-size: 18px; }
+    nav button { padding: 8px 9px; font-size: 14px; }
+    .btn { padding: 9px 13px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">leader<span>board</span></div>
+  <nav>
+    <button id="tab-shelf" class="active" onclick="switchTab('shelf')">Shelf</button>
+    <button id="tab-activity" onclick="switchTab('activity')">Activity</button>
+  </nav>
+  <div class="header-right">
+    <button class="icon-btn" id="settingsBtn" onclick="openSettings()" title="Data source settings">&#9881;</button>
+    <button class="btn" onclick="openAdd()">+ Log</button>
+  </div>
+</header>
+
+<main>
+  <div class="source-bar" id="sourceBar"></div>
+
+  <section id="view-shelf">
+    <div class="stats" id="stats"></div>
+    <div class="filters" id="filters"></div>
+    <div class="shelf" id="shelf"></div>
+    <div class="empty-state" id="empty" style="display:none">
+      <h2>Your shelf is empty</h2>
+      <p>Hit &ldquo;+ Log&rdquo; and add the first game. Everything saves in your browser.</p>
+    </div>
+  </section>
+
+  <section id="view-activity" style="display:none">
+    <div class="feed" id="feed"></div>
+  </section>
+</main>
+
+<footer>
+  Game data and artwork from <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a>.
+</footer>
+
+<!-- ADD GAME MODAL -->
+<div class="overlay" id="addOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('addOverlay')">&times;</button>
+    <h2>Log a game</h2>
+    <p class="sub" id="addSub">Search the catalog, or add anything manually.</p>
+    <input type="text" id="searchInput" placeholder="Search games&hellip;" oninput="onSearchInput()">
+    <div class="results" id="results"></div>
+    <button class="toggle-manual" onclick="toggleManual()">Can&rsquo;t find it? Add manually &darr;</button>
+    <div class="manual-fields" id="manualFields">
+      <label>Title</label>
+      <input type="text" id="mTitle" placeholder="e.g. Firewatch">
+      <label>Year</label>
+      <input type="text" id="mYear" placeholder="e.g. 2016">
+      <label>Platform</label>
+      <input type="text" id="mPlatform" placeholder="e.g. PS5, PC, Switch&hellip;">
+    </div>
+    <div class="modal-actions">
+      <span></span>
+      <button class="btn" onclick="addManual()">Add to shelf</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('detailOverlay')">&times;</button>
+    <h2 id="dTitle"></h2>
+    <p class="sub" id="dMeta"></p>
+    <label>Status</label>
+    <div class="status-row" id="statusRow"></div>
+    <label>Rating</label>
+    <div class="star-rating" id="starRating" title="Click to rate out of 10"></div>
+    <p class="hint">Out of 10 &mdash; because half-measures are for 5-star apps.</p>
+    <label>Hours (optional)</label>
+    <input type="text" id="dHours" placeholder="e.g. 34" oninput="saveHours()">
+    <label>Review</label>
+    <textarea id="dReview" placeholder="One-liner or a rant. Your call." oninput="saveReview()"></textarea>
+    <div class="modal-actions">
+      <button class="btn danger" onclick="removeEntry()">Remove</button>
+      <button class="btn" onclick="closeModal('detailOverlay')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('settingsOverlay')">&times;</button>
+    <h2>Data source</h2>
+    <p class="sub">
+      Paste a RAWG API key to search 850,000+ games with real cover art.
+      Get one free at <a href="https://rawg.io/apidocs" target="_blank" rel="noopener" style="color:var(--accent)">rawg.io/apidocs</a>.
+      Without a key, Leaderboard falls back to its built-in list of ~50 games.
+    </p>
+
+    <label>RAWG API key</label>
+    <input type="text" id="sKey" placeholder="paste your key here" autocomplete="off" spellcheck="false">
+    <p class="hint warn">
+      Stored only in this browser. Because the key travels in the URL, anyone who
+      inspects this page can read it &mdash; fine for a personal project, not for a public launch.
+    </p>
+
+    <label>Proxy URL (optional, recommended)</label>
+    <input type="text" id="sProxy" placeholder="https://your-worker.workers.dev" autocomplete="off" spellcheck="false">
+    <p class="hint">
+      Solves CORS errors and keeps the key out of the browser. Leave blank to call RAWG directly.
+    </p>
+
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="testConnection()">Test connection</button>
+      <button class="btn" onclick="saveSettings()">Save</button>
+    </div>
+    <p class="hint" id="testResult" style="margin-top:12px"></p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const RAWG_BASE = "https://api.rawg.io/api";
+const LS_DATA = "leaderboard_v1";
+const LS_SETTINGS = "leaderboard_settings_v1";
+
+/* Fallback catalog, used when no RAWG key is configured or the network is unreachable. */
+const CATALOG = [
+  { t:"Elden Ring", y:2022, p:"Multi" }, { t:"Baldur's Gate 3", y:2023, p:"PC" },
+  { t:"The Legend of Zelda: Breath of the Wild", y:2017, p:"Switch" },
+  { t:"Hades", y:2020, p:"Multi" }, { t:"Disco Elysium", y:2019, p:"PC" },
+  { t:"Outer Wilds", y:2019, p:"Multi" }, { t:"Hollow Knight", y:2017, p:"Multi" },
+  { t:"Celeste", y:2018, p:"Multi" }, { t:"Red Dead Redemption 2", y:2018, p:"Multi" },
+  { t:"The Witcher 3: Wild Hunt", y:2015, p:"Multi" }, { t:"Bloodborne", y:2015, p:"PS4" },
+  { t:"Dark Souls III", y:2016, p:"Multi" }, { t:"Sekiro", y:2019, p:"Multi" },
+  { t:"Stardew Valley", y:2016, p:"Multi" }, { t:"Animal Crossing: New Horizons", y:2020, p:"Switch" },
+  { t:"God of War", y:2018, p:"PS4" }, { t:"God of War Ragnarok", y:2022, p:"PS5" },
+  { t:"Marvel's Spider-Man 2", y:2023, p:"PS5" }, { t:"Tears of the Kingdom", y:2023, p:"Switch" },
+  { t:"Super Mario Odyssey", y:2017, p:"Switch" }, { t:"Persona 5 Royal", y:2019, p:"Multi" },
+  { t:"Final Fantasy VII Remake", y:2020, p:"Multi" }, { t:"NieR: Automata", y:2017, p:"Multi" },
+  { t:"Metroid Dread", y:2021, p:"Switch" }, { t:"Returnal", y:2021, p:"PS5" },
+  { t:"Dead Cells", y:2018, p:"Multi" }, { t:"Slay the Spire", y:2019, p:"Multi" },
+  { t:"Civilization VI", y:2016, p:"Multi" }, { t:"Factorio", y:2020, p:"PC" },
+  { t:"RimWorld", y:2018, p:"Multi" }, { t:"Minecraft", y:2011, p:"Multi" },
+  { t:"Portal 2", y:2011, p:"Multi" }, { t:"Half-Life: Alyx", y:2020, p:"PC" },
+  { t:"Firewatch", y:2016, p:"Multi" }, { t:"What Remains of Edith Finch", y:2017, p:"Multi" },
+  { t:"Undertale", y:2015, p:"Multi" }, { t:"Cuphead", y:2017, p:"Multi" },
+  { t:"Resident Evil 4 (Remake)", y:2023, p:"Multi" }, { t:"Silent Hill 2 (Remake)", y:2024, p:"Multi" },
+  { t:"Balatro", y:2024, p:"Multi" }, { t:"Dave the Diver", y:2023, p:"Multi" },
+  { t:"Alan Wake 2", y:2023, p:"Multi" }, { t:"Cyberpunk 2077", y:2020, p:"Multi" },
+  { t:"Mass Effect Legendary Edition", y:2021, p:"Multi" }, { t:"Skyrim", y:2011, p:"Multi" },
+  { t:"Ghost of Tsushima", y:2020, p:"PS4" }, { t:"Horizon Zero Dawn", y:2017, p:"PS4" },
+  { t:"Rocket League", y:2015, p:"Multi" }, { t:"Overwatch 2", y:2022, p:"Multi" }
+];
+
+const STATUSES = ["Playing","Completed","Backlog","On Hold","Dropped","Endless"];
+const STATUS_COLORS = { "Playing":"#3fbf7f","Completed":"#6d4aff","Backlog":"#9a94b8","On Hold":"#ffc94d","Dropped":"#e05b5b","Endless":"#4dc3ff" };
+const PALETTE = ["#5b3fa8","#28427a","#7a3b2e","#2e6b4f","#7a5a2e","#54306b","#2e5468","#6b3050"];
+
+const FRIENDS = [
+  { name:"mira", color:"#5b3fa8", game:"Outer Wilds", status:"Completed", rating:10,
+    review:"Twenty-two loops in, I finally stopped taking notes and started feeling the music of the solar system. No game has ever trusted its player this much." },
+  { name:"tomo", color:"#2e5468", game:"Elden Ring", status:"Dropped", rating:6,
+    review:"Magnificent world, but 60 hours in I realised I was working a second job I didn't enjoy. The bosses won. Respect." },
+  { name:"priya", color:"#7a3b2e", game:"Disco Elysium", status:"Completed", rating:10,
+    review:"Read a novel, got punched by my own necktie, solved a murder. The inner commentary voices deserve their own DLC." },
+  { name:"jules", color:"#2e6b4f", game:"Balatro", status:"Endless", rating:9,
+    review:"'Just one more run' \u2014 a sentence that has cost me four weekends and my sleep schedule. Best roguelike deckbuilder ever made." },
+  { name:"sam", color:"#6b3050", game:"Cyberpunk 2077", status:"Completed", rating:7,
+    review:"Came for the bug memes in 2020, stayed for Phantom Liberty in 2024. Redemption arcs aren't just for the story." }
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let entries = [];
+let myActivity = [];
+let filter = "All";
+let tab = "shelf";
+let currentId = null;
+let pendingRating = 0;
+let settings = { key: "", proxy: "" };
+let remoteResults = [];
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_DATA);
+    if (raw) { const s = JSON.parse(raw); entries = s.entries || []; myActivity = s.myActivity || []; }
+  } catch (e) {}
+  try {
+    const raw = localStorage.getItem(LS_SETTINGS);
+    if (raw) settings = Object.assign(settings, JSON.parse(raw));
+  } catch (e) {}
+}
+function persist() { localStorage.setItem(LS_DATA, JSON.stringify({ entries, myActivity })); }
+function persistSettings() { localStorage.setItem(LS_SETTINGS, JSON.stringify(settings)); }
+
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+/* Only allow http(s) image URLs through, so a bad API payload can't inject markup. */
+function safeImg(u) {
+  if (!u || typeof u !== "string") return "";
+  if (!/^https?:\/\//i.test(u)) return "";
+  return u.replace(/"/g, "%22").replace(/'/g, "%27").replace(/</g, "%3C").replace(/>/g, "%3E");
+}
+function coverColor(title) {
+  let h = 0;
+  for (const c of String(title)) h = (h * 31 + c.charCodeAt(0)) % 997;
+  return PALETTE[h % PALETTE.length];
+}
+function stars(r) {
+  if (!r) return "";
+  let out = "";
+  for (let i = 1; i <= 10; i++) out += i <= r ? "\u2605" : '<span class="off">\u2605</span>';
+  return out;
+}
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+/* ============================================================
+   RAWG CLIENT
+   ============================================================ */
+
+/* Build a request URL. If a proxy is configured we hit PROXY + path,
+   otherwise we call RAWG directly. */
+function apiUrl(path, params) {
+  const qs = new URLSearchParams(params);
+  if (settings.proxy) {
+    return settings.proxy.replace(/\/+$/, "") + path + "?" + qs.toString();
+  }
+  return RAWG_BASE + path + "?" + qs.toString();
+}
+
+function isConfigured() { return Boolean(settings.key || settings.proxy); }
+
+/* Normalise a RAWG game object into the shape the shelf uses. */
+function mapRawg(g) {
+  const plats = (g.platforms || [])
+    .map(p => (p && p.platform ? p.platform.name : null))
+    .filter(Boolean);
+  return {
+    rawgId: g.id,
+    slug: g.slug,
+    title: g.name,
+    year: g.released ? String(g.released).slice(0, 4) : "",
+    platform: plats.slice(0, 2).join(", "),
+    image: g.background_image || ""
+  };
+}
+
+let searchTimer = null;
+let searchAbort = null;
+
+function onSearchInput() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(runSearch, 340);   /* debounce: one request per pause, not per keystroke */
+}
+
+async function runSearch() {
+  const q = document.getElementById("searchInput").value.trim();
+
+  if (!isConfigured()) { renderLocalResults(q, ""); return; }
+  if (q.length < 2) { renderLocalResults(q, "Type at least 2 characters to search RAWG."); return; }
+
+  const cacheKey = "rawg_q_" + q.toLowerCase();
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    try { remoteResults = JSON.parse(cached); renderRemoteResults(remoteResults); return; } catch (e) {}
+  }
+
+  document.getElementById("results").innerHTML = '<p class="hint">Searching RAWG&hellip;</p>';
+
+  if (searchAbort) searchAbort.abort();
+  searchAbort = new AbortController();
+
+  const params = { search: q, page_size: 8 };
+  if (settings.key) params.key = settings.key;
+
+  try {
+    const res = await fetch(apiUrl("/games", params), { signal: searchAbort.signal });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    remoteResults = (data.results || []).map(mapRawg);
+    try { sessionStorage.setItem(cacheKey, JSON.stringify(remoteResults)); } catch (e) {}
+    renderRemoteResults(remoteResults);
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+    renderLocalResults(q, "Couldn't reach RAWG (" + esc(err.message) + ") \u2014 showing the built-in list instead.");
+  }
+}
+
+function renderRemoteResults(list) {
+  const box = document.getElementById("results");
+  if (!list.length) { box.innerHTML = '<p class="hint">No matches. Try different wording, or add it manually below.</p>'; return; }
+  box.innerHTML = list.map((g, i) => {
+    const img = safeImg(g.image);
+    const thumb = img
+      ? '<div class="thumb" style="background-image:url(\'' + img + '\')"></div>'
+      : '<div class="thumb" style="background:' + coverColor(g.title) + '"></div>';
+    return '<button class="result" onclick="pickRemote(' + i + ')">' + thumb +
+      '<span class="rt"><b>' + esc(g.title) + '</b>' +
+      '<span class="yr">' + esc(g.year || "unknown year") +
+      (g.platform ? " &middot; " + esc(g.platform) : "") + '</span></span>' +
+      '</button>';
+  }).join("");
+}
+
+function renderLocalResults(q, notice) {
+  const box = document.getElementById("results");
+  const needle = (q || "").toLowerCase();
+  const list = CATALOG.filter(g => !needle || g.t.toLowerCase().includes(needle)).slice(0, 8);
+  let html = notice ? '<p class="hint warn">' + notice + '</p>' : "";
+  html += list.map(g =>
+    '<button class="result" onclick="quickAdd(' + CATALOG.indexOf(g) + ')">' +
+      '<span class="rt"><b>' + esc(g.t) + '</b><span class="yr">' + g.y + '</span></span>' +
+    '</button>'
+  ).join("");
+  if (!list.length) html += '<p class="hint">No matches \u2014 add it manually below.</p>';
+  box.innerHTML = html;
+}
+
+function pickRemote(i) {
+  const g = remoteResults[i];
+  if (!g) return;
+  addEntry(g.title, g.year, g.platform, "Playing", { image: g.image, rawgId: g.rawgId, slug: g.slug });
+  closeModal("addOverlay");
+}
+function quickAdd(i) {
+  const g = CATALOG[i];
+  addEntry(g.t, g.y, g.p, "Playing", {});
+  closeModal("addOverlay");
+}
+
+/* ============================================================
+   SHELF / FEED
+   ============================================================ */
+function switchTab(t) {
+  tab = t;
+  document.getElementById("tab-shelf").classList.toggle("active", t === "shelf");
+  document.getElementById("tab-activity").classList.toggle("active", t === "activity");
+  document.getElementById("view-shelf").style.display = t === "shelf" ? "" : "none";
+  document.getElementById("view-activity").style.display = t === "activity" ? "" : "none";
+  render();
+}
+
+function render() {
+  renderSourceBar();
+  if (tab === "shelf") { renderFilters(); renderShelf(); renderStats(); }
+  else renderFeed();
+}
+
+function renderSourceBar() {
+  const bar = document.getElementById("sourceBar");
+  if (settings.key || settings.proxy) {
+    const via = settings.proxy ? "via proxy" : "direct";
+    bar.innerHTML = '<span class="dot on"></span> Live RAWG data (' + via + ')' +
+      (settings.key ? "" : " \u2014 key supplied by proxy");
+  } else {
+    bar.innerHTML = '<span class="dot off"></span> Built-in catalog (50 games). ' +
+      '<button class="toggle-manual" style="margin:0 0 0 6px" onclick="openSettings()">Connect RAWG for 850,000+</button>';
+  }
+}
+
+function renderStats() {
+  const counts = {};
+  for (const e of entries) counts[e.status] = (counts[e.status] || 0) + 1;
+  const rated = entries.filter(e => e.rating > 0);
+  const avg = rated.length ? (rated.reduce((a,e) => a + e.rating, 0) / rated.length).toFixed(1) : "\u2014";
+  document.getElementById("stats").innerHTML =
+    '<div class="stat-chip">Games<b>' + entries.length + '</b></div>' +
+    '<div class="stat-chip">Completed<b>' + (counts["Completed"] || 0) + '</b></div>' +
+    '<div class="stat-chip">Playing<b>' + (counts["Playing"] || 0) + '</b></div>' +
+    '<div class="stat-chip">Avg rating<b>' + avg + '</b></div>';
+}
+
+function renderFilters() {
+  const opts = ["All"].concat(STATUSES.filter(s => entries.some(e => e.status === s)));
+  document.getElementById("filters").innerHTML = opts.map(o =>
+    '<button class="' + (o === filter ? "active" : "") + '" onclick="setFilter(\'' + o + '\')">' + o + '</button>'
+  ).join("");
+}
+function setFilter(f) { filter = f; render(); }
+
+function renderShelf() {
+  const shelf = document.getElementById("shelf");
+  const empty = document.getElementById("empty");
+  const list = entries
+    .filter(e => filter === "All" || e.status === filter)
+    .sort((a, b) => b.added - a.added);
+
+  shelf.innerHTML = list.map(e => {
+    const img = safeImg(e.image);
+    const bg = img ? "" : 'background:' + coverColor(e.title);
+    const inner = img
+      ? '<img src="' + img + '" alt="" loading="lazy"><div class="shade"></div>'
+      : '<div class="shade"></div>';
+    return '<div class="game-card" onclick="openDetail(' + e.id + ')">' +
+      '<div class="cover" style="' + bg + '">' +
+        '<span class="badge" style="color:' + STATUS_COLORS[e.status] + '">' + esc(e.status) + '</span>' +
+        inner +
+        (img ? "" : '<span class="initial">' + esc(e.title.slice(0, 2).toUpperCase()) + '</span>') +
+      '</div>' +
+      '<h3>' + esc(e.title) + '</h3>' +
+      '<div class="meta">' + esc(e.year || "") + (e.hours ? " &middot; " + esc(e.hours) + "h" : "") + '</div>' +
+      (e.rating ? '<div class="stars">' + stars(e.rating) + '</div>' : "") +
+    '</div>';
+  }).join("");
+
+  empty.style.display = entries.length === 0 ? "" : "none";
+  shelf.style.display = (list.length === 0 && entries.length > 0) ? "none" : "";
+}
+
+function renderFeed() {
+  let html = myActivity.map(a =>
+    '<div class="activity">' +
+      '<div class="avatar" style="background:#6d4aff">you</div>' +
+      '<div><div class="who">you <span>' + timeAgo(a.at) + '</span></div>' +
+      '<div class="game-link">' + esc(a.game) + '</div>' +
+      (a.rating ? '<div class="stars">' + stars(a.rating) + '</div>' : "") +
+      (a.review ? '<p class="review">' + esc(a.review) + '</p>' : "") +
+      '</div></div>'
+  ).join("");
+
+  html += FRIENDS.map(f =>
+    '<div class="activity">' +
+      '<div class="avatar" style="background:' + f.color + '">' + esc(f.name.slice(0, 2)) + '</div>' +
+      '<div><div class="who">' + esc(f.name) + ' <span>logged</span></div>' +
+      '<div class="game-link">' + esc(f.game) + '</div>' +
+      '<div class="stars">' + stars(f.rating) + '</div>' +
+      '<p class="review">' + esc(f.review) + '</p>' +
+      '<p class="hint" style="margin-top:6px">' + esc(f.status) + '</p>' +
+      '</div></div>'
+  ).join("");
+
+  document.getElementById("feed").innerHTML = html;
+}
+
+function timeAgo(ts) {
+  const d = Math.floor((Date.now() - ts) / 60000);
+  if (d < 1) return "just now";
+  if (d < 60) return d + "m ago";
+  const h = Math.floor(d / 60);
+  if (h < 24) return h + "h ago";
+  return Math.floor(h / 24) + "d ago";
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+function openAdd() {
+  document.getElementById("addOverlay").classList.add("open");
+  document.getElementById("searchInput").value = "";
+  document.getElementById("manualFields").classList.remove("show");
+  document.getElementById("addSub").textContent = isConfigured()
+    ? "Searching RAWG's database of 850,000+ games."
+    : "Searching the built-in catalog. Connect RAWG in settings for the full database.";
+  renderLocalResults("", isConfigured() ? "" : "");
+  setTimeout(() => document.getElementById("searchInput").focus(), 50);
+}
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => {
+  if (e.target === o) o.classList.remove("open");
+}));
+function toggleManual() { document.getElementById("manualFields").classList.toggle("show"); }
+
+function addManual() {
+  const t = document.getElementById("mTitle").value.trim();
+  if (!t) { toast("Give it a title first"); return; }
+  addEntry(t, document.getElementById("mYear").value.trim(),
+              document.getElementById("mPlatform").value.trim(), "Playing", {});
+  ["mTitle","mYear","mPlatform"].forEach(id => document.getElementById(id).value = "");
+  closeModal("addOverlay");
+}
+
+function addEntry(title, year, platform, status, extra) {
+  extra = extra || {};
+  const e = {
+    id: Date.now(), title, year, platform, status,
+    rating: 0, review: "", hours: "", added: Date.now(),
+    image: extra.image || "", rawgId: extra.rawgId || null, slug: extra.slug || ""
+  };
+  entries.unshift(e);
+  myActivity.unshift({ at: Date.now(), game: title, type: "started" });
+  persist(); render(); toast("Added " + title);
+}
+
+function openDetail(id) {
+  currentId = id;
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById("dTitle").textContent = e.title;
+  document.getElementById("dMeta").textContent =
+    (e.year || "unknown year") + (e.platform ? " \u00b7 " + e.platform : "");
+  document.getElementById("dHours").value = e.hours;
+  document.getElementById("dReview").value = e.review;
+  pendingRating = e.rating;
+  renderStatusRow(e.status);
+  renderStars();
+  document.getElementById("detailOverlay").classList.add("open");
+}
+function renderStatusRow(active) {
+  document.getElementById("statusRow").innerHTML = STATUSES.map(s =>
+    '<button class="' + (s === active ? "active" : "") + '" onclick="setStatus(\'' + s + '\')">' + s + '</button>'
+  ).join("");
+}
+function setStatus(s) {
+  const e = entries.find(x => x.id === currentId);
+  e.status = s; persist(); renderStatusRow(s); render();
+  if (s === "Completed" && e.rating === 0) toast("Finished! Now rate it out of 10.");
+}
+function renderStars() {
+  const el = document.getElementById("starRating");
+  el.innerHTML = "";
+  for (let i = 1; i <= 10; i++) {
+    const sp = document.createElement("span");
+    sp.textContent = "\u2605";
+    if (i <= pendingRating) sp.classList.add("on");
+    sp.onclick = () => {
+      pendingRating = (pendingRating === i) ? 0 : i;
+      const e = entries.find(x => x.id === currentId);
+      e.rating = pendingRating;
+      if (pendingRating) {
+        const already = myActivity.find(a => a.game === e.title && a.rating);
+        if (!already) myActivity.unshift({ at: Date.now(), game: e.title, rating: pendingRating, review: e.review });
+      }
+      persist(); renderStars(); render();
+    };
+    el.appendChild(sp);
+  }
+}
+function saveHours() {
+  const e = entries.find(x => x.id === currentId);
+  if (!e) return;
+  e.hours = document.getElementById("dHours").value.trim();
+  persist();
+}
+function saveReview() {
+  const e = entries.find(x => x.id === currentId);
+  if (!e) return;
+  e.review = document.getElementById("dReview").value.trim();
+  const act = myActivity.find(a => a.game === e.title && a.rating);
+  if (act) act.review = e.review;
+  persist();
+}
+function removeEntry() {
+  entries = entries.filter(x => x.id !== currentId);
+  persist(); render(); closeModal("detailOverlay");
+  toast("Removed from shelf");
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+function openSettings() {
+  document.getElementById("sKey").value = settings.key;
+  document.getElementById("sProxy").value = settings.proxy;
+  document.getElementById("testResult").textContent = "";
+  document.getElementById("settingsOverlay").classList.add("open");
+}
+function saveSettings() {
+  settings.key = document.getElementById("sKey").value.trim();
+  settings.proxy = document.getElementById("sProxy").value.trim();
+  persistSettings();
+  sessionStorage.clear();          /* stale cached results may belong to a different key */
+  closeModal("settingsOverlay");
+  render();
+  toast(isConfigured() ? "RAWG connected" : "Using built-in catalog");
+}
+async function testConnection() {
+  const out = document.getElementById("testResult");
+  const key = document.getElementById("sKey").value.trim();
+  const proxy = document.getElementById("sProxy").value.trim();
+  out.className = "hint";
+  out.textContent = "Testing\u2026";
+  const params = { page_size: 1 };
+  if (key) params.key = key;
+  const url = proxy
+    ? proxy.replace(/\/+$/, "") + "/games?" + new URLSearchParams(params).toString()
+    : RAWG_BASE + "/games?" + new URLSearchParams(params).toString();
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    out.textContent = "Working \u2014 RAWG reports " + (data.count != null ? data.count.toLocaleString() : "?") + " games.";
+  } catch (err) {
+    out.className = "hint warn";
+    out.textContent = "Failed: " + err.message + ". Check the key, or set up a proxy if this is a CORS error.";
+  }
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+loadState();
+render();
+</script>
+</body>
+</html>
