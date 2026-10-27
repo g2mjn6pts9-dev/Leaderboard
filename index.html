@@ -135,6 +135,48 @@
   .leader-name { flex: 1; font-weight: 700; }
   .leader-hours { color: var(--muted); font-size: 12px; }
 
+  .stats-grid {
+    display: grid; gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    margin-top: 20px;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 8px 18px var(--shadow);
+  }
+  .panel h3 {
+    font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 12px;
+  }
+
+  .rating-chart {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .rating-row {
+    display: grid; grid-template-columns: 22px 1fr 30px;
+    align-items: center; gap: 8px;
+    font-size: 12px; color: var(--muted);
+  }
+  .rating-track {
+    position: relative; height: 10px; border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .rating-fill {
+    position: absolute; inset: 0 auto 0 0;
+    background: linear-gradient(90deg, var(--gold), var(--accent));
+    border-radius: inherit;
+  }
+  .rating-count {
+    text-align: right;
+    font-weight: 700;
+    color: var(--text);
+  }
+
   .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
   .filters button {
     background: var(--surface); border: 1px solid var(--border);
@@ -322,6 +364,7 @@
     <button id="tab-shelf" class="active" onclick="switchTab('shelf')">Library</button>
     <button id="tab-wishlist" onclick="switchTab('wishlist')">Wishlist</button>
     <button id="tab-activity" onclick="switchTab('activity')">Activity</button>
+    <button id="tab-stats" onclick="switchTab('stats')">Stats</button>
   </nav>
   <div class="header-right">
     <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="Theme toggle">🌙</button>
@@ -334,8 +377,6 @@
   <div class="source-bar" id="sourceBar"></div>
 
   <section id="view-shelf">
-    <div class="stats" id="stats"></div>
-    <div class="leaderboard" id="leaderboard"></div>
     <div class="toolbar">
       <div class="search-wrap">
         <span aria-hidden="true">🔎</span>
@@ -359,6 +400,14 @@
 
   <section id="view-wishlist" style="display:none">
     <div class="shelf" id="wishlistShelf"></div>
+  </section>
+
+  <section id="view-stats" style="display:none">
+    <div class="stats" id="statsSummary"></div>
+    <div class="stats-grid">
+      <div class="panel" id="leaderboardPanel"></div>
+      <div class="panel" id="ratingChartPanel"></div>
+    </div>
   </section>
 
   <section id="view-activity" style="display:none">
@@ -768,8 +817,10 @@ function switchTab(t) {
   document.getElementById("tab-shelf").classList.toggle("active", t === "shelf");
   document.getElementById("tab-wishlist").classList.toggle("active", t === "wishlist");
   document.getElementById("tab-activity").classList.toggle("active", t === "activity");
+  document.getElementById("tab-stats").classList.toggle("active", t === "stats");
   document.getElementById("view-shelf").style.display = t === "shelf" ? "" : "none";
   document.getElementById("view-wishlist").style.display = t === "wishlist" ? "" : "none";
+  document.getElementById("view-stats").style.display = t === "stats" ? "" : "none";
   document.getElementById("view-activity").style.display = t === "activity" ? "" : "none";
   render();
 }
@@ -826,8 +877,9 @@ function render() {
   if (searchInput && searchInput.value !== searchQuery) searchInput.value = searchQuery;
   const select = document.getElementById("sortSelect");
   if (select && select.value !== sortMode) select.value = sortMode;
-  if (tab === "shelf") { renderFilters(); renderShelf(); renderStats(); renderLeaderboard(); }
+  if (tab === "shelf") { renderFilters(); renderShelf(); }
   else if (tab === "wishlist") { renderWishlist(); }
+  else if (tab === "stats") { renderStatsView(); }
   else { renderFeed(); }
   applyTheme(theme);
 }
@@ -844,41 +896,50 @@ function renderSourceBar() {
   }
 }
 
-function renderStats() {
+function renderStatsView() {
   const counts = {};
   for (const e of entries) counts[e.status] = (counts[e.status] || 0) + 1;
   const rated = entries.filter(e => e.rating > 0);
   const avg = rated.length ? (rated.reduce((a,e) => a + e.rating, 0) / rated.length).toFixed(1) : "—";
-  const happy = entries.filter(e => e.wishlist).length;
-  const top = [...entries].filter(e => Number(e.hours) > 0).sort((a,b) => (Number(b.hours)||0) - (Number(a.hours)||0))[0];
-  document.getElementById("stats").innerHTML =
-    '<div class="stat-chip">Games<b>' + entries.length + '</b></div>' +
-    '<div class="stat-chip">Completed<b>' + (counts["Completed"] || 0) + '</b></div>' +
-    '<div class="stat-chip">Playing<b>' + (counts["Playing"] || 0) + '</b></div>' +
-    '<div class="stat-chip">Avg rating<b>' + avg + '</b></div>' +
-    '<div class="stat-chip">Wishlist<b>' + happy + '</b></div>' +
-    '<div class="stat-chip">Top play<b>' + (top ? top.title + ' ' + top.hours + 'h' : '—') + '</b></div>';
-}
-
-function renderLeaderboard() {
   const topGames = [...entries]
     .filter(e => Number(e.hours) > 0)
     .sort((a, b) => (Number(b.hours) || 0) - (Number(a.hours) || 0))
     .slice(0, 3);
 
-  const div = document.getElementById("leaderboard");
+  document.getElementById("statsSummary").innerHTML =
+    '<div class="stat-chip">Games<b>' + entries.length + '</b></div>' +
+    '<div class="stat-chip">Completed<b>' + (counts["Completed"] || 0) + '</b></div>' +
+    '<div class="stat-chip">Playing<b>' + (counts["Playing"] || 0) + '</b></div>' +
+    '<div class="stat-chip">Avg rating<b>' + avg + '</b></div>' +
+    '<div class="stat-chip">Wishlist<b>' + entries.filter(e => e.wishlist).length + '</b></div>' +
+    '<div class="stat-chip">Top play<b>' + (topGames[0] ? topGames[0].title + ' ' + topGames[0].hours + 'h' : '—') + '</b></div>';
+
+  const leaderboard = document.getElementById("leaderboardPanel");
   if (!topGames.length) {
-    div.innerHTML = '<h3>Most played</h3><div class="hint">Add hours to your games to unlock the leaderboard.</div>';
-    return;
+    leaderboard.innerHTML = '<h3>Most played</h3><div class="hint">Add hours to your games to unlock the leaderboard.</div>';
+  } else {
+    leaderboard.innerHTML = '<h3>Most played</h3>' + topGames.map((e, i) =>
+      '<div class="leader-row">' +
+        '<span class="leader-rank">' + (i + 1) + '</span>' +
+        '<span class="leader-name">' + esc(e.title) + '</span>' +
+        '<span class="leader-hours">' + (Number(e.hours) || 0) + 'h</span>' +
+      '</div>'
+    ).join("");
   }
 
-  div.innerHTML = '<h3>Most played</h3>' + topGames.map((e, i) =>
-    '<div class="leader-row">' +
-      '<span class="leader-rank">' + (i + 1) + '</span>' +
-      '<span class="leader-name">' + esc(e.title) + '</span>' +
-      '<span class="leader-hours">' + (Number(e.hours) || 0) + 'h</span>' +
-    '</div>'
-  ).join("");
+  const countsByStar = Array.from({ length: 10 }, (_, i) => i + 1).map(v => {
+    const count = entries.filter(e => Number(e.rating) === v).length;
+    return { star: v, count };
+  });
+  const max = Math.max(...countsByStar.map(x => x.count), 1);
+  const chart = document.getElementById("ratingChartPanel");
+  chart.innerHTML = '<h3>Ratings</h3><div class="rating-chart">' + countsByStar.map(item => {
+    return '<div class="rating-row">' +
+      '<span>' + item.star + '</span>' +
+      '<div class="rating-track"><div class="rating-fill" style="width:' + (item.count / max * 100) + '%"></div></div>' +
+      '<span class="rating-count">' + item.count + '</span>' +
+      '</div>';
+  }).join("") + '</div>';
 }
 
 function renderFilters() {
