@@ -1,1266 +1,1413 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>leaderboard</title>
-<style>
-  :root {
-    --bg: #0c1423;
-    --surface: #122338;
-    --surface2: #18314d;
-    --border: #24476c;
-    --text: #ecf6ff;
-    --muted: #a5bfd3;
-    --accent: #ff3b3b;
-    --accent-hover: #ff5454;
-    --green: #34d399;
-    --gold: #ffd166;
-    --red: #ff5a5a;
-    --shadow: rgba(0, 0, 0, 0.28);
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leaderboard</title>
+  <style>
+    :root {
+      --bg: #0c1423;
+      --surface: #122338;
+      --surface-2: #18314d;
+      --border: #24476c;
+      --text: #eef7ff;
+      --muted: #b8cfe4;
+      --accent: #ff3b3b;
+      --accent-strong: #ff5c5c;
+      --green: #34d399;
+      --gold: #ffd166;
+      --shadow: rgba(0, 0, 0, 0.28);
+      --panel: rgba(17, 31, 46, 0.9);
+    }
 
-  body.theme-light {
-    --bg: #edf6ff;
-    --surface: #ffffff;
-    --surface2: #e5f1ff;
-    --border: #c7d9ee;
-    --text: #101d2b;
-    --muted: #51677d;
-    --accent: #ff3b3b;
-    --accent-hover: #ed2f2f;
-    --green: #1fcf78;
-    --gold: #d89c00;
-    --red: #f04b4b;
-    --shadow: rgba(17, 58, 95, 0.12);
-  }
+    * { box-sizing: border-box; }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: Georgia, "Times New Roman", serif;
-    min-height: 100vh;
-    display: flex; flex-direction: column;
-  }
-  header {
-    position: sticky; top: 0; z-index: 10;
-    background: rgba(12,20,35,.92);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 20px;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px;
-  }
-  body.theme-light header {
-    background: rgba(237,246,255,0.9);
-  }
-  .logo { font-size: 22px; font-weight: 800; letter-spacing: -.5px; color: var(--accent); }
-  .logo span { color: var(--text); }
-  nav { display: flex; gap: 4px; }
-  nav button {
-    background: none; border: none; color: var(--muted);
-    font-size: 15px; font-weight: 600; padding: 8px 14px;
-    border-radius: 8px; cursor: pointer;
-  }
-  nav button.active { color: var(--text); background: var(--surface2); }
-  nav button:hover:not(.active) { color: var(--text); }
-  .header-right { display: flex; gap: 8px; align-items: center; }
-  .icon-btn {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--muted); width: 38px; height: 38px; border-radius: 10px;
-    font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  }
-  .icon-btn:hover { color: var(--text); border-color: var(--accent); }
-  .icon-btn.live { color: var(--green); border-color: rgba(52,211,153,.45); }
-  .btn {
-    background: var(--accent); color: #fff; border: none;
-    font-size: 15px; font-weight: 700; padding: 9px 18px;
-    border-radius: 10px; cursor: pointer;
-  }
-  .btn:hover { background: var(--accent-hover); }
-  main { max-width: 1080px; margin: 0 auto; padding: 24px 20px 40px; width: 100%; flex: 1; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Georgia, "Times New Roman", serif;
+    }
 
-  .source-bar {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 12px; color: var(--muted); margin-bottom: 18px;
-  }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
-  .dot.on { background: var(--green); }
-  .dot.off { background: var(--gold); }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
 
-  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-  .stat-chip {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 10px 16px; font-size: 14px; color: var(--muted);
-  }
-  .stat-chip b { color: var(--text); font-size: 16px; margin-left: 6px; }
+    a { color: var(--accent); }
 
-  .toolbar {
-    display: flex; gap: 10px; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; margin-bottom: 20px;
-  }
-  .toolbar .search-wrap {
-    flex: 1 1 240px; display: flex; align-items: center; gap: 8px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 10px 12px; min-height: 42px;
-  }
-  .toolbar .search-wrap input {
-    width: 100%; background: transparent; border: none; outline: none; color: var(--text);
-    font-size: 14px; font-family: inherit;
-  }
-  .toolbar .search-wrap input::placeholder { color: var(--muted); }
-  .toolbar select {
-    background: var(--surface); color: var(--text); border: 1px solid var(--border);
-    border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit;
-    cursor: pointer;
-  }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      background: rgba(12, 20, 35, 0.92);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      backdrop-filter: blur(8px);
+    }
 
-  .leaderboard {
-    background: linear-gradient(135deg, rgba(255,59,59,.12), rgba(52,211,153,.08));
-    border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px;
-    box-shadow: 0 10px 20px var(--shadow);
-  }
-  .leaderboard h3 {
-    font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
-  }
-  .leader-row {
-    display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
-  }
-  .leader-row:last-child { border-bottom: none; }
-  .leader-rank {
-    width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
-    background: var(--surface2); color: var(--text); font-size: 12px; font-weight: 800;
-  }
-  .leader-name { flex: 1; font-weight: 700; }
-  .leader-hours { color: var(--muted); font-size: 12px; }
+    .logo {
+      font-weight: 800;
+      font-size: 1.5rem;
+      letter-spacing: -0.04em;
+      color: var(--accent);
+    }
 
-  .stats-grid {
-    display: grid; gap: 18px;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    margin-top: 20px;
-  }
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px;
-    box-shadow: 0 8px 18px var(--shadow);
-  }
-  .panel h3 {
-    font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 12px;
-  }
+    .logo span { color: var(--text); }
 
-  .rating-chart {
-    display: flex; flex-direction: column; gap: 8px;
-  }
-  .rating-row {
-    display: grid; grid-template-columns: 22px 1fr 30px;
-    align-items: center; gap: 8px;
-    font-size: 12px; color: var(--muted);
-  }
-  .rating-track {
-    position: relative; height: 10px; border-radius: 999px;
-    background: rgba(255,255,255,0.05);
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.04);
-  }
-  .rating-fill {
-    position: absolute; inset: 0 auto 0 0;
-    background: linear-gradient(90deg, var(--gold), var(--accent));
-    border-radius: inherit;
-  }
-  .rating-count {
-    text-align: right;
-    font-weight: 700;
-    color: var(--text);
-  }
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
 
-  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-  .filters button {
-    background: var(--surface); border: 1px solid var(--border);
-    color: var(--muted); padding: 6px 14px; border-radius: 999px;
-    font-size: 13px; font-weight: 600; cursor: pointer;
-  }
-  .filters button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    nav button {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
 
-  .shelf { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-  .game-card { cursor: pointer; transition: transform .12s ease; }
-  .game-card:hover { transform: translateY(-3px); }
-  .cover {
-    width: 100%; aspect-ratio: 3/4; border-radius: 12px;
-    display: flex; align-items: flex-end; justify-content: flex-start;
-    padding: 10px; font-weight: 800; font-size: 34px;
-    color: rgba(255,255,255,.85); position: relative; overflow: hidden;
-    border: 1px solid var(--border); background-size: cover; background-position: center;
-  }
-  .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .cover .shade {
-    position: absolute; inset: 0;
-    background: linear-gradient(to top, rgba(10,8,18,.72) 0%, rgba(10,8,18,0) 55%);
-  }
-  .cover .badge {
-    position: absolute; top: 8px; right: 8px; z-index: 2;
-    font-size: 10px; font-weight: 700; padding: 3px 8px;
-    border-radius: 999px; background: rgba(0,0,0,.62);
-    color: #fff; letter-spacing: .3px; text-transform: uppercase;
-  }
-  .cover .favorite-btn {
-    position: absolute; top: 8px; left: 8px; z-index: 3;
-    width: 28px; height: 28px; border-radius: 50%;
-    border: 1px solid rgba(255,255,255,.3);
-    background: rgba(10,8,18,.45); color: #fff;
-    font-size: 15px; cursor: pointer; display: grid; place-items: center;
-  }
-  .cover .favorite-btn.on { color: #ffd166; }
-  .cover .initial { position: relative; z-index: 1; }
-  .game-card h3 { font-size: 14px; margin-top: 8px; font-weight: 700; line-height: 1.3; }
-  .game-card .meta-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .game-card .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .game-card .recent-tag {
-    font-size: 10px; color: var(--green); font-weight: 700;
-    letter-spacing: .05em; text-transform: uppercase;
-  }
-  .game-card .stars { font-size: 13px; margin-top: 4px; color: var(--gold); letter-spacing: 1px; }
-  .game-card .stars .off { color: #3a3558; }
+    nav button.active {
+      background: var(--surface-2);
+      color: var(--text);
+    }
 
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-  .empty-state h2 { color: var(--text); margin-bottom: 8px; }
+    nav button:hover { color: var(--text); }
 
-  .feed { display: flex; flex-direction: column; gap: 14px; max-width: 660px; }
-  .activity {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 14px; padding: 16px 18px;
-    display: flex; gap: 14px; align-items: flex-start;
-  }
-  .avatar {
-    width: 42px; height: 42px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 16px; color: #fff; flex-shrink: 0;
-  }
-  .activity .who { font-weight: 700; font-size: 14px; }
-  .activity .who span { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 6px; }
-  .activity .game-link { color: var(--accent); font-weight: 700; font-size: 14px; margin: 2px 0 4px; }
-  .activity p.review { font-size: 14px; line-height: 1.55; color: #cfccdf; }
-  .activity .stars { color: var(--gold); font-size: 14px; letter-spacing: 1px; }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-  .overlay {
-    position: fixed; inset: 0; background: rgba(10,8,18,.78);
-    display: none; align-items: flex-start; justify-content: center;
-    z-index: 50; padding: 40px 16px; overflow-y: auto;
-  }
-  .overlay.open { display: flex; }
-  .modal {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 16px; width: 100%; max-width: 490px; padding: 24px;
-  }
-  .modal h2 { font-size: 18px; margin-bottom: 4px; }
-  .modal .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; line-height: 1.5; }
-  .modal input[type=text], .modal textarea, .modal select {
-    width: 100%; background: var(--bg); border: 1px solid var(--border);
-    color: var(--text); border-radius: 10px; padding: 10px 12px;
-    font-size: 14px; font-family: inherit; margin-bottom: 4px;
-  }
-  .modal textarea { min-height: 90px; resize: vertical; }
-  .modal label {
-    display: block; font-size: 12px; font-weight: 700; color: var(--muted);
-    margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .5px;
-  }
-  .close-x {
-    float: right; background: none; border: none; color: var(--muted);
-    font-size: 22px; cursor: pointer; line-height: 1;
-  }
-  .status-row { display: flex; gap: 6px; flex-wrap: wrap; }
-  .status-row button {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--muted); padding: 6px 12px; border-radius: 999px;
-    font-size: 12px; font-weight: 700; cursor: pointer;
-  }
-  .status-row button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .toggle-row {
-    display: flex; margin-top: 4px; margin-bottom: 8px;
-  }
-  .toggle-btn {
-    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
-    padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 13px;
-  }
-  .toggle-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .star-rating { display: flex; gap: 4px; font-size: 26px; cursor: pointer; user-select: none; }
-  .star-rating span { color: #3a3558; transition: color .1s; }
-  body.theme-light .star-rating span { color: #b8afd6; }
-  .star-rating span.on { color: var(--gold); }
-  .history-list {
-    background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px;
-    display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto;
-  }
-  .history-item {
-    font-size: 12px; line-height: 1.4; color: var(--muted);
-    padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.05);
-  }
-  .history-item:last-child { border-bottom: none; padding-bottom: 0; }
-  .history-item strong { color: var(--text); }
-  .modal-actions { display: flex; justify-content: space-between; margin-top: 22px; gap: 10px; }
-  .btn.secondary { background: var(--surface2); color: var(--text); }
-  .btn.danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
-  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
-  .hint.warn { color: var(--gold); }
+    .icon-btn, .btn {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+    }
 
-  .results { max-height: 280px; overflow-y: auto; margin-bottom: 6px; }
-  .results button.result {
-    display: flex; align-items: center; gap: 10px; width: 100%;
-    background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    padding: 8px 10px; border-radius: 10px; margin-bottom: 6px;
-    font-size: 14px; cursor: pointer; text-align: left;
-  }
-  .results button.result:hover { border-color: var(--accent); }
-  .results .thumb {
-    width: 44px; height: 59px; border-radius: 6px; flex-shrink: 0;
-    background-size: cover; background-position: center; background-color: var(--surface2);
-  }
-  .results .rt { flex: 1; min-width: 0; }
-  .results .rt b { display: block; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .results .yr { color: var(--muted); font-size: 12px; }
-  .toggle-manual {
-    background: none; border: none; color: var(--accent);
-    font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0; margin-bottom: 8px;
-  }
-  .manual-fields { display: none; }
-  .manual-fields.show { display: block; }
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+    }
 
-  .toast {
-    position: fixed; bottom: 74px; left: 50%; transform: translateX(-50%);
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text); padding: 12px 22px; border-radius: 12px;
-    font-size: 14px; font-weight: 600; z-index: 100;
-    opacity: 0; transition: opacity .25s; pointer-events: none;
-  }
-  .toast.show { opacity: 1; }
+    .btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      padding: 9px 16px;
+      font-weight: 800;
+    }
 
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 16px 20px; text-align: center;
-    font-size: 12px; color: var(--muted);
-  }
-  footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
-  footer a:hover { text-decoration: underline; }
+    .btn.secondary {
+      background: var(--surface-2);
+      border-color: var(--border);
+      color: var(--text);
+    }
 
-  @media (max-width: 620px) {
-    .shelf { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
-    header { padding: 12px 14px; }
-    .logo { font-size: 18px; }
-    nav button { padding: 8px 9px; font-size: 14px; }
-    .btn { padding: 9px 13px; font-size: 14px; }
-    .toolbar { align-items: stretch; }
-    .toolbar select { width: 100%; }
-  }
-</style>
+    main {
+      max-width: 1100px;
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 20px 0 40px;
+      flex: 1;
+    }
+
+    .source-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 18px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      background: var(--gold);
+    }
+
+    .dot.on { background: var(--green); }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .search-wrap {
+      flex: 1 1 260px;
+      min-height: 42px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      padding: 10px 0;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font: inherit;
+    }
+
+    .search-wrap input::placeholder { color: var(--muted); }
+
+    select {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .filters button {
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .filters button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .shelf {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 18px;
+    }
+
+    .game-card {
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    .game-card:hover { transform: translateY(-3px); }
+
+    .cover {
+      position: relative;
+      aspect-ratio: 3 / 4;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, #1a3a5a, #0f1d2c);
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start;
+      padding: 10px;
+      box-shadow: 0 10px 20px var(--shadow);
+    }
+
+    .cover img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .cover .shade {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(7, 12, 20, 0.85), rgba(7, 12, 20, 0.12));
+    }
+
+    .cover .badge {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      z-index: 2;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .favorite-btn {
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      z-index: 3;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.4);
+      background: rgba(10, 8, 18, 0.45);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .favorite-btn.on { color: var(--gold); }
+
+    .cover .initial {
+      position: relative;
+      z-index: 1;
+      font-size: 2rem;
+      font-weight: 800;
+      color: rgba(255,255,255,0.82);
+    }
+
+    .game-card h3 {
+      margin: 8px 0 4px;
+      font-size: 0.94rem;
+      line-height: 1.3;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+
+    .recent-tag {
+      color: var(--green);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.6rem;
+    }
+
+    .stars {
+      margin-top: 6px;
+      color: var(--gold);
+      letter-spacing: 0.08em;
+      font-size: 0.82rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 52px 20px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-top: 8px;
+    }
+
+    .empty-state h2 { color: var(--text); }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 8px 18px var(--shadow);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .stat-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .stat-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      min-width: 110px;
+    }
+
+    .stat-chip b {
+      color: var(--text);
+      font-size: 1.1rem;
+      margin-left: 6px;
+    }
+
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .leader-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .leader-item:last-child { border-bottom: none; }
+
+    .leader-rank {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--surface-2);
+      font-weight: 800;
+      font-size: 0.78rem;
+    }
+
+    .leader-name {
+      flex: 1;
+      font-weight: 700;
+    }
+
+    .leader-hours {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .feed {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 760px;
+    }
+
+    .activity-item {
+      display: flex;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #7c42ff);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .activity-item .meta {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .activity-item strong { font-size: 0.9rem; }
+
+    .activity-item p {
+      margin: 6px 0 0;
+      color: #dfeaf6;
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+
+    .profile-layout {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    }
+
+    .profile-card {
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 22px;
+      box-shadow: 0 8px 18px var(--shadow);
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .profile-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--gold), var(--accent));
+      font-size: 1.5rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .profile-label {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 10px 0 6px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      background: rgba(12, 20, 35, 0.45);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      resize: vertical;
+    }
+
+    textarea { min-height: 90px; }
+
+    .top5-box {
+      background: rgba(12, 20, 35, 0.35);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .top5-box h3 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+    }
+
+    .top5-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .top5-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .top5-item .game-name {
+      font-weight: 800;
+      flex: 1;
+    }
+
+    .top5-item button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+
+    .muted-note {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin-top: 14px;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 12, 20, 0.8);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      z-index: 50;
+      padding: 40px 16px;
+      overflow-y: auto;
+    }
+
+    .overlay.open { display: flex; }
+
+    .modal {
+      width: min(500px, 100%);
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 20px 18px 18px;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .modal h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .close-x {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 1.8rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .modal p.sub {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.85rem;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .status-row button, .toggle-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 7px 10px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .status-row button.active, .toggle-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .toggle-row {
+      display: flex;
+      margin: 6px 0 12px;
+    }
+
+    .toggle-btn {
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+
+    .star-rating {
+      display: flex;
+      gap: 4px;
+      font-size: 1.7rem;
+      user-select: none;
+      margin: 2px 0 6px;
+    }
+
+    .star-rating span {
+      color: rgba(255,255,255,0.12);
+      cursor: pointer;
+      transition: color 0.12s ease;
+    }
+
+    .star-rating span.on { color: var(--gold); }
+
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .danger {
+      background: transparent;
+      border: 1px solid #ff6b6b;
+      color: #ff9a9a;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 72px;
+      transform: translateX(-50%);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 12px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 100;
+      pointer-events: none;
+      font-weight: 700;
+    }
+
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 760px) {
+      header {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .profile-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .shelf {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      }
+
+      nav {
+        justify-content: center;
+      }
+    }
+  </style>
 </head>
 <body>
+  <header>
+    <div class="logo">leader<span>board</span></div>
+    <nav>
+      <button id="tab-library" class="active" onclick="switchTab('library')">Library</button>
+      <button id="tab-wishlist" onclick="switchTab('wishlist')">Wishlist</button>
+      <button id="tab-activity" onclick="switchTab('activity')">Activity</button>
+      <button id="tab-stats" onclick="switchTab('stats')">Stats</button>
+      <button id="tab-profile" onclick="switchTab('profile')">Profile</button>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="Theme toggle">🌙</button>
+      <button class="btn" onclick="openAddModal()">+ Log</button>
+    </div>
+  </header>
 
-<header>
-  <div class="logo">leader<span>board</span></div>
-  <nav>
-    <button id="tab-shelf" class="active" onclick="switchTab('shelf')">Library</button>
-    <button id="tab-wishlist" onclick="switchTab('wishlist')">Wishlist</button>
-    <button id="tab-activity" onclick="switchTab('activity')">Activity</button>
-    <button id="tab-stats" onclick="switchTab('stats')">Stats</button>
-  </nav>
-  <div class="header-right">
-    <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="Theme toggle">🌙</button>
-    <button class="icon-btn" id="settingsBtn" onclick="openSettings()" title="Data source settings">⚙</button>
-    <button class="btn" onclick="openAdd()">+ Log</button>
-  </div>
-</header>
+  <main>
+    <div class="source-bar" id="sourceBar"></div>
 
-<main>
-  <div class="source-bar" id="sourceBar"></div>
-
-  <section id="view-shelf">
-    <div class="toolbar">
-      <div class="search-wrap">
-        <span aria-hidden="true">🔎</span>
-        <input id="shelfSearch" type="text" placeholder="Search your library..." oninput="setSearchQuery(this.value)">
+    <section id="view-library">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span aria-hidden="true">🔎</span>
+          <input id="librarySearch" type="text" placeholder="Search your library..." oninput="setSearchQuery(this.value)" />
+        </div>
+        <select id="sortSelect" onchange="setSortMode(this.value)">
+          <option value="recent">Recently added</option>
+          <option value="title">Title</option>
+          <option value="rating">Rating</option>
+          <option value="hours">Hours</option>
+          <option value="status">Status</option>
+        </select>
       </div>
-      <select id="sortSelect" onchange="setSortMode(this.value)">
-        <option value="recent">Recently added</option>
-        <option value="title">Title</option>
-        <option value="rating">Rating</option>
-        <option value="hours">Hours</option>
-        <option value="status">Status</option>
-      </select>
-    </div>
-    <div class="filters" id="filters"></div>
-    <div class="shelf" id="shelf"></div>
-    <div class="empty-state" id="empty" style="display:none">
-      <h2>Your library is empty</h2>
-      <p>Hit &ldquo;+ Log&rdquo; and add the first game. Everything saves in your browser.</p>
-    </div>
-  </section>
+      <div class="filters" id="filters"></div>
+      <div class="shelf" id="libraryShelf"></div>
+      <div class="empty-state" id="emptyState" style="display:none">
+        <h2>Your library is empty</h2>
+        <p>Hit “+ Log” and add your first game.</p>
+      </div>
+    </section>
 
-  <section id="view-wishlist" style="display:none">
-    <div class="shelf" id="wishlistShelf"></div>
-  </section>
+    <section id="view-wishlist" style="display:none">
+      <div class="shelf" id="wishlistShelf"></div>
+    </section>
 
-  <section id="view-stats" style="display:none">
-    <div class="stats" id="statsSummary"></div>
-    <div class="stats-grid">
-      <div class="panel" id="leaderboardPanel"></div>
-      <div class="panel" id="ratingChartPanel"></div>
-    </div>
-  </section>
+    <section id="view-activity" style="display:none">
+      <div class="feed" id="feed"></div>
+    </section>
 
-  <section id="view-activity" style="display:none">
-    <div class="feed" id="feed"></div>
-  </section>
-</main>
+    <section id="view-stats" style="display:none">
+      <div class="stat-row" id="statsSummary"></div>
+      <div class="stats-grid">
+        <div class="panel" id="leaderboardPanel"></div>
+        <div class="panel" id="ratingPanel"></div>
+      </div>
+    </section>
 
-<footer>
-  Game data and artwork from <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a>.
-</footer>
+    <section id="view-profile" style="display:none">
+      <div class="profile-layout">
+        <div class="profile-card">
+          <div class="profile-header">
+            <div class="profile-avatar" id="profileAvatar">U</div>
+            <div style="flex:1">
+              <label class="profile-label">Username</label>
+              <input id="profileUsername" type="text" placeholder="Your username" />
+            </div>
+          </div>
 
-<!-- ADD GAME MODAL -->
-<div class="overlay" id="addOverlay">
-  <div class="modal">
-    <button class="close-x" onclick="closeModal('addOverlay')">&times;</button>
-    <h2>Log a game</h2>
-    <p class="sub" id="addSub">Search the catalog, or add anything manually.</p>
-    <input type="text" id="searchInput" placeholder="Search games&hellip;" oninput="onSearchInput()">
-    <div class="results" id="results"></div>
-    <button class="toggle-manual" onclick="toggleManual()">Can&rsquo;t find it? Add manually &darr;</button>
-    <div class="manual-fields" id="manualFields">
-      <label>Title</label>
-      <input type="text" id="mTitle" placeholder="e.g. Firewatch">
-      <label>Year</label>
-      <input type="text" id="mYear" placeholder="e.g. 2016">
-      <label>Platform</label>
-      <input type="text" id="mPlatform" placeholder="e.g. PS5, PC, Switch&hellip;">
-    </div>
-    <div class="modal-actions">
-      <span></span>
-      <button class="btn" onclick="addManual()">Add to library</button>
-    </div>
-  </div>
-</div>
+          <label class="profile-label">Bio</label>
+          <textarea id="profileBio" placeholder="Tell people about your gaming life..."></textarea>
+          <p class="muted-note">Top 5 games are a separate status from favorites. A game can be favorited without being in your Top 5 list.</p>
+        </div>
 
-<!-- DETAIL MODAL -->
-<div class="overlay" id="detailOverlay">
-  <div class="modal">
-    <button class="close-x" onclick="closeModal('detailOverlay')">&times;</button>
-    <h2 id="dTitle"></h2>
-    <p class="sub" id="dMeta"></p>
-    <label>Status</label>
-    <div class="status-row" id="statusRow"></div>
-    <label>Wishlist</label>
-    <div class="toggle-row">
-      <button id="wishlistToggle" class="toggle-btn" onclick="toggleWishlist()">Add to wishlist</button>
-    </div>
-    <label>Rating</label>
-    <div class="star-rating" id="starRating" title="Click to rate out of 10"></div>
-    <p class="hint">Out of 10 &mdash; because half-measures are for 5-star apps.</p>
-    <label>Hours (optional)</label>
-    <input type="text" id="dHours" placeholder="e.g. 34" oninput="saveHours()">
-    <label>Review</label>
-    <textarea id="dReview" placeholder="One-liner or a rant. Your call." oninput="saveReview()"></textarea>
-    <label>Notes</label>
-    <textarea id="dNotes" placeholder="Add personal notes, reminders, or quick thoughts." oninput="saveNotes()"></textarea>
-    <label>History</label>
-    <div class="history-list" id="dHistory"></div>
-    <div class="modal-actions">
-      <button class="btn danger" onclick="removeEntry()">Remove</button>
-      <button class="btn" onclick="closeModal('detailOverlay')">Done</button>
+        <div class="top5-box profile-card">
+          <h3>Top 5 games</h3>
+          <div class="top5-list" id="top5List"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="overlay" id="addOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Log a game</h2>
+        <button class="close-x" onclick="closeModal('addOverlay')">&times;</button>
+      </div>
+      <p class="sub">Add a game to your library or save a quick title.</p>
+      <input id="manualTitle" type="text" placeholder="Game title" />
+      <label class="profile-label">Year</label>
+      <input id="manualYear" type="text" placeholder="2024" />
+      <label class="profile-label">Platform</label>
+      <input id="manualPlatform" type="text" placeholder="PC, Switch, PS5..." />
+      <div class="modal-actions">
+        <span></span>
+        <button class="btn" onclick="addManualGame()">Add to library</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- SETTINGS MODAL -->
-<div class="overlay" id="settingsOverlay">
-  <div class="modal">
-    <button class="close-x" onclick="closeModal('settingsOverlay')">&times;</button>
-    <h2>Data source</h2>
-    <p class="sub">
-      Paste a RAWG API key to search 850,000+ games with real cover art.
-      Get one free at <a href="https://rawg.io/apidocs" target="_blank" rel="noopener" style="color:var(--accent)">rawg.io/apidocs</a>.
-      Without a key, Leaderboard falls back to its built-in list of ~50 games.
-    </p>
+  <div class="overlay" id="detailOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="detailTitle">Game</h2>
+        <button class="close-x" onclick="closeModal('detailOverlay')">&times;</button>
+      </div>
+      <p class="sub" id="detailMeta">Meta</p>
 
-    <label>RAWG API key</label>
-    <input type="text" id="sKey" placeholder="paste your key here" autocomplete="off" spellcheck="false">
-    <p class="hint warn">
-      Stored only in this browser. Because the key travels in the URL, anyone who
-      inspects this page can read it &mdash; fine for a personal project, not for a public launch.
-    </p>
+      <label class="profile-label">Status</label>
+      <div class="status-row" id="statusRow"></div>
 
-    <label>Proxy URL (optional, recommended)</label>
-    <input type="text" id="sProxy" placeholder="https://your-worker.workers.dev" autocomplete="off" spellcheck="false">
-    <p class="hint">
-      Solves CORS errors and keeps the key out of the browser. Leave blank to call RAWG directly.
-    </p>
+      <label class="profile-label">Wishlist</label>
+      <div class="toggle-row">
+        <button id="wishlistToggle" class="toggle-btn" onclick="toggleWishlist()">Add to wishlist</button>
+      </div>
 
-    <label>Backup data</label>
-    <textarea id="backupText" placeholder="Paste exported JSON here, or click Export to copy your current library." style="min-height:90px"></textarea>
-    <div class="modal-actions" style="margin-top:12px">
-      <button class="btn secondary" onclick="exportData()">Export JSON</button>
-      <button class="btn secondary" onclick="importData()">Import JSON</button>
+      <label class="profile-label">Top 5</label>
+      <div class="toggle-row">
+        <button id="top5Toggle" class="toggle-btn" onclick="toggleTop5Status()">Add to Top 5</button>
+      </div>
+
+      <label class="profile-label">Rating</label>
+      <div class="star-rating" id="detailRating"></div>
+
+      <label class="profile-label">Hours (optional)</label>
+      <input id="detailHours" type="text" placeholder="e.g. 34" oninput="saveHours()" />
+
+      <label class="profile-label">Review</label>
+      <textarea id="detailReview" placeholder="One-liner or a rant." oninput="saveReview()"></textarea>
+
+      <label class="profile-label">Notes</label>
+      <textarea id="detailNotes" placeholder="Personal notes..." oninput="saveNotes()"></textarea>
+
+      <div class="modal-actions">
+        <button class="btn danger" onclick="removeEntry()">Remove</button>
+        <button class="btn" onclick="closeModal('detailOverlay')">Done</button>
+      </div>
     </div>
-
-    <div class="modal-actions">
-      <button class="btn secondary" onclick="testConnection()">Test connection</button>
-      <button class="btn" onclick="saveSettings()">Save</button>
-    </div>
-    <p class="hint" id="testResult" style="margin-top:12px"></p>
   </div>
-</div>
 
-<div class="toast" id="toast"></div>
-
-<script>
-"use strict";
-
-const RAWG_BASE = "https://api.rawg.io/api";
-const LS_DATA = "leaderboard_v1";
-const LS_SETTINGS = "leaderboard_settings_v1";
-const LS_VIEW = "leaderboard_view_v1";
-const LS_THEME = "leaderboard_theme_v1";
-
-const CATALOG = [
-  { t:"Elden Ring", y:2022, p:"Multi" }, { t:"Baldur's Gate 3", y:2023, p:"PC" },
-  { t:"The Legend of Zelda: Breath of the Wild", y:2017, p:"Switch" },
-  { t:"Hades", y:2020, p:"Multi" }, { t:"Disco Elysium", y:2019, p:"PC" },
-  { t:"Outer Wilds", y:2019, p:"Multi" }, { t:"Hollow Knight", y:2017, p:"Multi" },
-  { t:"Celeste", y:2018, p:"Multi" }, { t:"Red Dead Redemption 2", y:2018, p:"Multi" },
-  { t:"The Witcher 3: Wild Hunt", y:2015, p:"Multi" }, { t:"Bloodborne", y:2015, p:"PS4" },
-  { t:"Dark Souls III", y:2016, p:"Multi" }, { t:"Sekiro", y:2019, p:"Multi" },
-  { t:"Stardew Valley", y:2016, p:"Multi" }, { t:"Animal Crossing: New Horizons", y:2020, p:"Switch" },
-  { t:"God of War", y:2018, p:"PS4" }, { t:"God of War Ragnarok", y:2022, p:"PS5" },
-  { t:"Marvel's Spider-Man 2", y:2023, p:"PS5" }, { t:"Tears of the Kingdom", y:2023, p:"Switch" },
-  { t:"Super Mario Odyssey", y:2017, p:"Switch" }, { t:"Persona 5 Royal", y:2019, p:"Multi" },
-  { t:"Final Fantasy VII Remake", y:2020, p:"Multi" }, { t:"NieR: Automata", y:2017, p:"Multi" },
-  { t:"Metroid Dread", y:2021, p:"Switch" }, { t:"Returnal", y:2021, p:"PS5" },
-  { t:"Dead Cells", y:2018, p:"Multi" }, { t:"Slay the Spire", y:2019, p:"Multi" },
-  { t:"Civilization VI", y:2016, p:"Multi" }, { t:"Factorio", y:2020, p:"PC" },
-  { t:"RimWorld", y:2018, p:"Multi" }, { t:"Minecraft", y:2011, p:"Multi" },
-  { t:"Portal 2", y:2011, p:"Multi" }, { t:"Half-Life: Alyx", y:2020, p:"PC" },
-  { t:"Firewatch", y:2016, p:"Multi" }, { t:"What Remains of Edith Finch", y:2017, p:"Multi" },
-  { t:"Undertale", y:2015, p:"Multi" }, { t:"Cuphead", y:2017, p:"Multi" },
-  { t:"Resident Evil 4 (Remake)", y:2023, p:"Multi" }, { t:"Silent Hill 2 (Remake)", y:2024, p:"Multi" },
-  { t:"Balatro", y:2024, p:"Multi" }, { t:"Dave the Diver", y:2023, p:"Multi" },
-  { t:"Alan Wake 2", y:2023, p:"Multi" }, { t:"Cyberpunk 2077", y:2020, p:"Multi" },
-  { t:"Mass Effect Legendary Edition", y:2021, p:"Multi" }, { t:"Skyrim", y:2011, p:"Multi" },
-  { t:"Ghost of Tsushima", y:2020, p:"PS4" }, { t:"Horizon Zero Dawn", y:2017, p:"PS4" },
-  { t:"Rocket League", y:2015, p:"Multi" }, { t:"Overwatch 2", y:2022, p:"Multi" }
-];
-
-const STATUSES = ["Playing","Completed","Backlog","On Hold","Dropped","Endless"];
-const STATUS_COLORS = { "Playing":"#3b82f6","Completed":"#22c55e","Backlog":"#a5bfd3","On Hold":"#ffd166","Dropped":"#ef4444","Endless":"#60a5fa" };
-const PALETTE = ["#ff3b3b","#173d5e","#1fbf7a","#d54f4f","#2d7d69","#ff7e5f","#0f3a52","#1d8f70"];
-
-const FRIENDS = [
-  { name:"mira", color:"#ff3b3b", game:"Outer Wilds", status:"Completed", rating:10,
-    review:"Twenty-two loops in, I finally stopped taking notes and started feeling the music of the solar system. No game has ever trusted its player this much." },
-  { name:"tomo", color:"#173d5e", game:"Elden Ring", status:"Dropped", rating:6,
-    review:"Magnificent world, but 60 hours in I realised I was working a second job I didn't enjoy. The bosses won. Respect." },
-  { name:"priya", color:"#1fbf7a", game:"Disco Elysium", status:"Completed", rating:10,
-    review:"Read a novel, got punched by my own necktie, solved a murder. The inner commentary voices deserve their own DLC." },
-  { name:"jules", color:"#d54f4f", game:"Balatro", status:"Endless", rating:9,
-    review:"'Just one more run' — a sentence that has cost me four weekends and my sleep schedule. Best roguelike deckbuilder ever made." },
-  { name:"sam", color:"#0f3a52", game:"Cyberpunk 2077", status:"Completed", rating:7,
-    review:"Came for the bug memes in 2020, stayed for Phantom Liberty in 2024. Redemption arcs aren't just for the story." }
-];
-
-let entries = [];
-let myActivity = [];
-let filter = "All";
-let tab = "shelf";
-let currentId = null;
-let pendingRating = 0;
-let settings = { key: "", proxy: "" };
-let remoteResults = [];
-let searchQuery = "";
-let sortMode = "recent";
-let theme = "dark";
-
-function loadState() {
-  try {
-    const raw = localStorage.getItem(LS_DATA);
-    if (raw) { const s = JSON.parse(raw); entries = s.entries || []; myActivity = s.myActivity || []; }
-  } catch (e) {}
-  try {
-    const raw = localStorage.getItem(LS_SETTINGS);
-    if (raw) settings = Object.assign(settings, JSON.parse(raw));
-  } catch (e) {}
-  try {
-    const raw = localStorage.getItem(LS_VIEW);
-    if (raw) {
-      const s = JSON.parse(raw);
-      if (s && typeof s.searchQuery === "string") searchQuery = s.searchQuery;
-      if (s && s.sortMode) sortMode = s.sortMode;
-      if (s && s.filter) filter = s.filter;
-    }
-  } catch (e) {}
-  try {
-    const raw = localStorage.getItem(LS_THEME);
-    if (raw) theme = raw === "light" ? "light" : "dark";
-  } catch (e) {}
-}
-function persist() { localStorage.setItem(LS_DATA, JSON.stringify({ entries, myActivity })); }
-function persistSettings() { localStorage.setItem(LS_SETTINGS, JSON.stringify(settings)); }
-function persistView() { localStorage.setItem(LS_VIEW, JSON.stringify({ searchQuery, sortMode, filter })); }
-function persistTheme() { localStorage.setItem(LS_THEME, theme); }
-
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
-}
-
-function safeImg(u) {
-  if (!u || typeof u !== "string") return "";
-  if (!/^https?:\/\//i.test(u)) return "";
-  return u.replace(/"/g, "%22").replace(/'/g, "%27").replace(/</g, "%3C").replace(/>/g, "%3E");
-}
-
-function coverColor(title) {
-  let h = 0;
-  for (const c of String(title)) h = (h * 31 + c.charCodeAt(0)) % 997;
-  return PALETTE[h % PALETTE.length];
-}
-
-function stars(r) {
-  if (!r) return "";
-  let out = "";
-  for (let i = 1; i <= 10; i++) out += i <= r ? "\u2605" : '<span class="off">\u2605</span>';
-  return out;
-}
-
-function toast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.add("show");
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.remove("show"), 2400);
-}
-
-function applyTheme(value) {
-  theme = value === "light" ? "light" : "dark";
-  document.body.classList.toggle("theme-light", theme === "light");
-  const btn = document.getElementById("themeToggle");
-  if (btn) btn.textContent = theme === "light" ? "☀️" : "🌙";
-  persistTheme();
-}
-
-function toggleTheme() {
-  applyTheme(theme === "light" ? "dark" : "light");
-  toast(theme === "light" ? "Light mode enabled" : "Dark mode enabled");
-}
-
-function apiUrl(path, params) {
-  const qs = new URLSearchParams(params);
-  if (settings.proxy) {
-    return settings.proxy.replace(/\/+$/, "") + path + "?" + qs.toString();
-  }
-  return RAWG_BASE + path + "?" + qs.toString();
-}
-
-function isConfigured() { return Boolean(settings.key || settings.proxy); }
-
-function mapRawg(g) {
-  const plats = (g.platforms || []).map(p => (p && p.platform ? p.platform.name : null)).filter(Boolean);
-  return {
-    rawgId: g.id,
-    slug: g.slug,
-    title: g.name,
-    year: g.released ? String(g.released).slice(0, 4) : "",
-    platform: plats.slice(0, 2).join(", "),
-    image: g.background_image || ""
-  };
-}
-
-function uniquePlatformOptions() {
-  const set = new Set();
-  entries.forEach(e => {
-    const labels = platformLabels(e.platform);
-    labels.forEach(label => set.add(label));
-  });
-  return [...set].sort();
-}
-
-function platformLabels(platform) {
-  const raw = String(platform || "");
-  if (!raw.trim()) return [];
-  return raw.split(/[,&/|]+/).map(p => p.trim()).filter(Boolean)
-    .map(value => normalizePlatformLabel(value))
-    .filter(Boolean)
-    .filter((value, index, arr) => arr.indexOf(value) === index);
-}
-
-function normalizePlatformLabel(value) {
-  const v = String(value || "").trim();
-  const lower = v.toLowerCase();
-  if (!v) return "";
-  if (/playstation|ps\s*\d|ps\b/i.test(v)) return "PlayStation";
-  if (/xbox|series/i.test(v)) return "Xbox";
-  if (/switch|nintendo/i.test(v)) return "Switch";
-  if (/pc|windows|linux|mac/i.test(v)) return "PC";
-  if (/multi|cross-platform/i.test(v)) return "Multi";
-  return v;
-}
-
-function matchesPlatformFilter(entry, filter) {
-  const labels = platformLabels(entry.platform);
-  if (!labels.length) return false;
-  if (filter === "PlayStation") return labels.some(label => /PlayStation|PS/.test(label));
-  if (filter === "Xbox") return labels.some(label => /Xbox/.test(label));
-  if (filter === "Switch") return labels.some(label => /Switch/.test(label));
-  if (filter === "PC") return labels.some(label => /PC/.test(label));
-  if (filter === "Multi") return labels.some(label => /Multi/.test(label));
-  return labels.includes(filter) || String(entry.platform || "").toLowerCase().includes(filter.toLowerCase());
-}
-
-function isRecent(ts) {
-  if (!ts) return false;
-  const ms = Number(ts);
-  if (!Number.isFinite(ms)) return false;
-  return (Date.now() - ms) <= 30 * 24 * 60 * 60 * 1000;
-}
-
-function touchLastPlayed(entry) {
-  if (!entry) return;
-  entry.lastPlayed = Date.now();
-}
-
-let searchTimer = null;
-let searchAbort = null;
-
-function onSearchInput() {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(runSearch, 340);
-}
-
-async function runSearch() {
-  const q = document.getElementById("searchInput").value.trim();
-
-  if (!isConfigured()) { renderLocalResults(q, ""); return; }
-  if (q.length < 2) { renderLocalResults(q, "Type at least 2 characters to search RAWG."); return; }
-
-  const cacheKey = "rawg_q_" + q.toLowerCase();
-  const cached = sessionStorage.getItem(cacheKey);
-  if (cached) {
-    try { remoteResults = JSON.parse(cached); renderRemoteResults(remoteResults); return; } catch (e) {}
-  }
-
-  document.getElementById("results").innerHTML = '<p class="hint">Searching RAWG&hellip;</p>';
-
-  if (searchAbort) searchAbort.abort();
-  searchAbort = new AbortController();
-
-  const params = { search: q, page_size: 8 };
-  if (settings.key) params.key = settings.key;
-
-  try {
-    const res = await fetch(apiUrl("/games", params), { signal: searchAbort.signal });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    remoteResults = (data.results || []).map(mapRawg);
-    try { sessionStorage.setItem(cacheKey, JSON.stringify(remoteResults)); } catch (e) {}
-    renderRemoteResults(remoteResults);
-  } catch (err) {
-    if (err && err.name === "AbortError") return;
-    renderLocalResults(q, "Couldn't reach RAWG (" + esc(err.message) + ") — showing the built-in list instead.");
-  }
-}
-
-function renderRemoteResults(list) {
-  const box = document.getElementById("results");
-  if (!list.length) { box.innerHTML = '<p class="hint">No matches. Try different wording, or add it manually below.</p>'; return; }
-  box.innerHTML = list.map((g, i) => {
-    const img = safeImg(g.image);
-    const thumb = img
-      ? '<div class="thumb" style="background-image:url(\'' + img + '\')"></div>'
-      : '<div class="thumb" style="background:' + coverColor(g.title) + '"></div>';
-    return '<button class="result" onclick="pickRemote(' + i + ')">' + thumb +
-      '<span class="rt"><b>' + esc(g.title) + '</b>' +
-      '<span class="yr">' + esc(g.year || "unknown year") +
-      (g.platform ? " &middot; " + esc(g.platform) : "") + '</span></span>' +
-      '</button>';
-  }).join("");
-}
-
-function renderLocalResults(q, notice) {
-  const box = document.getElementById("results");
-  const needle = (q || "").toLowerCase();
-  const list = CATALOG.filter(g => !needle || g.t.toLowerCase().includes(needle)).slice(0, 8);
-  let html = notice ? '<p class="hint warn">' + notice + '</p>' : "";
-  html += list.map(g =>
-    '<button class="result" onclick="quickAdd(' + CATALOG.indexOf(g) + ')">' +
-      '<span class="rt"><b>' + esc(g.t) + '</b><span class="yr">' + g.y + '</span></span>' +
-    '</button>'
-  ).join("");
-  if (!list.length) html += '<p class="hint">No matches — add it manually below.</p>';
-  box.innerHTML = html;
-}
-
-function pickRemote(i) {
-  const g = remoteResults[i];
-  if (!g) return;
-  addEntry(g.title, g.year, g.platform, "Playing", { image: g.image, rawgId: g.rawgId, slug: g.slug });
-  closeModal("addOverlay");
-}
-
-function quickAdd(i) {
-  const g = CATALOG[i];
-  addEntry(g.t, g.y, g.p, "Playing", {});
-  closeModal("addOverlay");
-}
-
-function switchTab(t) {
-  tab = t;
-  document.getElementById("tab-shelf").classList.toggle("active", t === "shelf");
-  document.getElementById("tab-wishlist").classList.toggle("active", t === "wishlist");
-  document.getElementById("tab-activity").classList.toggle("active", t === "activity");
-  document.getElementById("tab-stats").classList.toggle("active", t === "stats");
-  document.getElementById("view-shelf").style.display = t === "shelf" ? "" : "none";
-  document.getElementById("view-wishlist").style.display = t === "wishlist" ? "" : "none";
-  document.getElementById("view-stats").style.display = t === "stats" ? "" : "none";
-  document.getElementById("view-activity").style.display = t === "activity" ? "" : "none";
-  render();
-}
-
-function getVisibleEntries() {
-  const q = searchQuery.trim().toLowerCase();
-  const filtered = entries.filter(e => {
-    if (tab === "wishlist") return Boolean(e.wishlist);
-    if (filter === "Wishlist") return Boolean(e.wishlist);
-    if (filter === "Favorites") return Boolean(e.favorite);
-    if (filter === "Recent") return Boolean(e.lastPlayed && isRecent(e.lastPlayed));
-    if (STATUSES.includes(filter)) return e.status === filter;
-    if (filter !== "All") return matchesPlatformFilter(e, filter);
-    if (!q) return true;
-    return [e.title, e.platform, e.status, e.year, e.review, e.notes].join(" ").toLowerCase().includes(q);
-  });
-
-  const statusOrder = STATUSES;
-  return filtered.filter(e => {
-    if (!q) return true;
-    return [e.title, e.platform, e.status, e.year, e.review, e.notes].join(" ").toLowerCase().includes(q);
-  }).sort((a, b) => {
-    switch (sortMode) {
-      case "title":
-        return String(a.title).localeCompare(String(b.title)) || (b.added || 0) - (a.added || 0);
-      case "rating":
-        return (Number(b.rating) || 0) - (Number(a.rating) || 0) || (b.added || 0) - (a.added || 0);
-      case "hours":
-        return (Number(b.hours) || 0) - (Number(a.hours) || 0) || (b.added || 0) - (a.added || 0);
-      case "status":
-        return (statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)) || (b.added || 0) - (a.added || 0);
-      case "recent":
-      default:
-        return (b.added || 0) - (a.added || 0);
-    }
-  });
-}
-
-function setSearchQuery(value) {
-  searchQuery = value || "";
-  persistView();
-  render();
-}
-
-function setSortMode(value) {
-  sortMode = value || "recent";
-  persistView();
-  render();
-}
-
-function render() {
-  renderSourceBar();
-  const searchInput = document.getElementById("shelfSearch");
-  if (searchInput && searchInput.value !== searchQuery) searchInput.value = searchQuery;
-  const select = document.getElementById("sortSelect");
-  if (select && select.value !== sortMode) select.value = sortMode;
-  if (tab === "shelf") { renderFilters(); renderShelf(); }
-  else if (tab === "wishlist") { renderWishlist(); }
-  else if (tab === "stats") { renderStatsView(); }
-  else { renderFeed(); }
-  applyTheme(theme);
-}
-
-function renderSourceBar() {
-  const bar = document.getElementById("sourceBar");
-  if (settings.key || settings.proxy) {
-    const via = settings.proxy ? "via proxy" : "direct";
-    bar.innerHTML = '<span class="dot on"></span> Live RAWG data (' + via + ')' +
-      (settings.key ? "" : " — key supplied by proxy");
-  } else {
-    bar.innerHTML = '<span class="dot off"></span> Built-in catalog (50 games). ' +
-      '<button class="toggle-manual" style="margin:0 0 0 6px" onclick="openSettings()">Connect RAWG for 850,000+</button>';
-  }
-}
-
-function renderStatsView() {
-  const counts = {};
-  for (const e of entries) counts[e.status] = (counts[e.status] || 0) + 1;
-  const rated = entries.filter(e => e.rating > 0);
-  const avg = rated.length ? (rated.reduce((a,e) => a + e.rating, 0) / rated.length).toFixed(1) : "—";
-  const topGames = [...entries]
-    .filter(e => Number(e.hours) > 0)
-    .sort((a, b) => (Number(b.hours) || 0) - (Number(a.hours) || 0))
-    .slice(0, 3);
-
-  document.getElementById("statsSummary").innerHTML =
-    '<div class="stat-chip">Games<b>' + entries.length + '</b></div>' +
-    '<div class="stat-chip">Completed<b>' + (counts["Completed"] || 0) + '</b></div>' +
-    '<div class="stat-chip">Playing<b>' + (counts["Playing"] || 0) + '</b></div>' +
-    '<div class="stat-chip">Avg rating<b>' + avg + '</b></div>' +
-    '<div class="stat-chip">Wishlist<b>' + entries.filter(e => e.wishlist).length + '</b></div>' +
-    '<div class="stat-chip">Top play<b>' + (topGames[0] ? topGames[0].title + ' ' + topGames[0].hours + 'h' : '—') + '</b></div>';
-
-  const leaderboard = document.getElementById("leaderboardPanel");
-  if (!topGames.length) {
-    leaderboard.innerHTML = '<h3>Most played</h3><div class="hint">Add hours to your games to unlock the leaderboard.</div>';
-  } else {
-    leaderboard.innerHTML = '<h3>Most played</h3>' + topGames.map((e, i) =>
-      '<div class="leader-row">' +
-        '<span class="leader-rank">' + (i + 1) + '</span>' +
-        '<span class="leader-name">' + esc(e.title) + '</span>' +
-        '<span class="leader-hours">' + (Number(e.hours) || 0) + 'h</span>' +
-      '</div>'
-    ).join("");
-  }
-
-  const countsByStar = Array.from({ length: 10 }, (_, i) => i + 1).map(v => {
-    const count = entries.filter(e => Number(e.rating) === v).length;
-    return { star: v, count };
-  });
-  const max = Math.max(...countsByStar.map(x => x.count), 1);
-  const chart = document.getElementById("ratingChartPanel");
-  chart.innerHTML = '<h3>Ratings</h3><div class="rating-chart">' + countsByStar.map(item => {
-    return '<div class="rating-row">' +
-      '<span>' + item.star + '</span>' +
-      '<div class="rating-track"><div class="rating-fill" style="width:' + (item.count / max * 100) + '%"></div></div>' +
-      '<span class="rating-count">' + item.count + '</span>' +
-      '</div>';
-  }).join("") + '</div>';
-}
-
-function renderFilters() {
-  const baseOptions = ["All", "Favorites", "Recent"].concat(STATUSES);
-  const platformOptions = uniquePlatformOptions();
-  const opts = baseOptions.concat(platformOptions.filter(opt => !baseOptions.includes(opt)));
-  if (entries.some(e => e.wishlist)) opts.push("Wishlist");
-  document.getElementById("filters").innerHTML = opts.map(o =>
-    '<button class="' + (o === filter ? "active" : "") + '" onclick="setFilter(\'' + o + '\')">' + o + '</button>'
-  ).join("");
-}
-
-function setFilter(f) { filter = f; persistView(); render(); }
-
-function renderShelf() {
-  const shelf = document.getElementById("shelf");
-  const empty = document.getElementById("empty");
-  const list = getVisibleEntries();
-
-  shelf.innerHTML = list.map(e => {
-    const img = safeImg(e.image);
-    const bg = img ? "" : 'background:' + coverColor(e.title);
-    const inner = img
-      ? '<img src="' + img + '" alt="" loading="lazy"><div class="shade"></div>'
-      : '<div class="shade"></div>';
-    const favoriteBtn = '<button class="favorite-btn ' + (e.favorite ? 'on' : '') + '" onclick="toggleFavorite(event, ' + e.id + ')">' + (e.favorite ? '★' : '☆') + '</button>';
-    const recentTag = e.lastPlayed && isRecent(e.lastPlayed) ? '<span class="recent-tag">' + timeAgo(e.lastPlayed) + '</span>' : '';
-    return '<div class="game-card" onclick="openDetail(' + e.id + ')">' +
-      '<div class="cover" style="' + bg + '">' +
-        favoriteBtn +
-        '<span class="badge" style="color:' + STATUS_COLORS[e.status] + '">' + esc(e.status) + '</span>' +
-        inner +
-        (img ? "" : '<span class="initial">' + esc(e.title.slice(0, 2).toUpperCase()) + '</span>') +
-      '</div>' +
-      '<h3>' + esc(e.title) + '</h3>' +
-      '<div class="meta-row"><div class="meta">' + esc(e.year || "") + (e.hours ? " · " + esc(e.hours) + "h" : "") + '</div>' + recentTag + '</div>' +
-      (e.rating ? '<div class="stars">' + stars(e.rating) + '</div>' : "") +
-    '</div>';
-  }).join("");
-
-  empty.style.display = entries.length === 0 ? "" : "none";
-  shelf.style.display = (list.length === 0 && entries.length > 0) ? "none" : "";
-}
-
-function renderWishlist() {
-  const box = document.getElementById("wishlistShelf");
-  const list = entries.filter(e => e.wishlist);
-  box.innerHTML = list.length ? list.map(e => {
-    const img = safeImg(e.image);
-    const bg = img ? "" : 'background:' + coverColor(e.title);
-    const inner = img ? '<img src="' + img + '" alt="" loading="lazy"><div class="shade"></div>' : '<div class="shade"></div>';
-    return '<div class="game-card" onclick="openDetail(' + e.id + ')">' +
-      '<div class="cover" style="' + bg + '">' +
-        '<span class="badge" style="color:' + STATUS_COLORS[e.status] + '">Wish</span>' +
-        inner +
-        (img ? "" : '<span class="initial">' + esc(e.title.slice(0, 2).toUpperCase()) + '</span>') +
-      '</div>' +
-      '<h3>' + esc(e.title) + '</h3>' +
-      '<div class="meta">' + esc(e.year || "") + '</div>' +
-    '</div>';
-  }).join("") : '<div class="empty-state" style="width:100%"><h2>Wishlist is empty</h2><p>Save games you want to play next.</p></div>';
-}
-
-function renderFeed() {
-  let html = myActivity.map(a =>
-    '<div class="activity">' +
-      '<div class="avatar" style="background:#6d4aff">you</div>' +
-      '<div><div class="who">you <span>' + timeAgo(a.at) + '</span></div>' +
-      '<div class="game-link">' + esc(a.game) + '</div>' +
-      (a.rating ? '<div class="stars">' + stars(a.rating) + '</div>' : "") +
-      (a.review ? '<p class="review">' + esc(a.review) + '</p>' : "") +
-      '</div></div>'
-  ).join("");
-
-  html += FRIENDS.map(f =>
-    '<div class="activity">' +
-      '<div class="avatar" style="background:' + f.color + '">' + esc(f.name.slice(0, 2)) + '</div>' +
-      '<div><div class="who">' + esc(f.name) + ' <span>logged</span></div>' +
-      '<div class="game-link">' + esc(f.game) + '</div>' +
-      '<div class="stars">' + stars(f.rating) + '</div>' +
-      '<p class="review">' + esc(f.review) + '</p>' +
-      '<p class="hint" style="margin-top:6px">' + esc(f.status) + '</p>' +
-      '</div></div>'
-  ).join("");
-
-  document.getElementById("feed").innerHTML = html;
-}
-
-function timeAgo(ts) {
-  const d = Math.floor((Date.now() - ts) / 60000);
-  if (d < 1) return "just now";
-  if (d < 60) return d + "m ago";
-  const h = Math.floor(d / 60);
-  if (h < 24) return h + "h ago";
-  return Math.floor(h / 24) + "d ago";
-}
-
-function toggleFavorite(event, id) {
-  event.stopPropagation();
-  const e = entries.find(x => x.id === id);
-  if (!e) return;
-  e.favorite = !e.favorite;
-  touchLastPlayed(e);
-  persist(); render();
-  toast(e.favorite ? "Added to favorites" : "Removed from favorites");
-}
-
-function openAdd() {
-  document.getElementById("addOverlay").classList.add("open");
-  document.getElementById("searchInput").value = "";
-  document.getElementById("manualFields").classList.remove("show");
-  document.getElementById("addSub").textContent = isConfigured()
-    ? "Searching RAWG's database of 850,000+ games."
-    : "Searching the built-in catalog. Connect RAWG in settings for the full database.";
-  renderLocalResults("", isConfigured() ? "" : "");
-  setTimeout(() => document.getElementById("searchInput").focus(), 50);
-}
-function closeModal(id) { document.getElementById(id).classList.remove("open"); }
-document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => {
-  if (e.target === o) o.classList.remove("open");
-}));
-function toggleManual() { document.getElementById("manualFields").classList.toggle("show"); }
-
-function addManual() {
-  const t = document.getElementById("mTitle").value.trim();
-  if (!t) { toast("Give it a title first"); return; }
-  addEntry(t, document.getElementById("mYear").value.trim(),
-              document.getElementById("mPlatform").value.trim(), "Playing", {});
-  ["mTitle","mYear","mPlatform"].forEach(id => document.getElementById(id).value = "");
-  closeModal("addOverlay");
-}
-
-function recordHistory(entry, type, detail) {
-  if (!entry) return;
-  if (!Array.isArray(entry.history)) entry.history = [];
-  entry.history.unshift({ type, detail, at: Date.now() });
-  entry.history = entry.history.slice(0, 12);
-}
-
-function addEntry(title, year, platform, status, extra) {
-  extra = extra || {};
-  const now = Date.now();
-  const e = {
-    id: now, title, year, platform, status,
-    rating: 0, review: "", notes: "", hours: "", added: now,
-    image: extra.image || "", rawgId: extra.rawgId || null, slug: extra.slug || "",
-    wishlist: false, favorite: false, lastPlayed: now,
-    history: [{ type: "added", detail: "Added to library", at: now }]
-  };
-  entries.unshift(e);
-  myActivity.unshift({ at: now, game: title, type: "started" });
-  persist(); persistView(); render(); toast("Added " + title);
-}
-
-function openDetail(id) {
-  currentId = id;
-  const e = entries.find(x => x.id === id);
-  if (!e) return;
-  document.getElementById("dTitle").textContent = e.title;
-  document.getElementById("dMeta").textContent =
-    (e.year || "unknown year") + (e.platform ? " · " + e.platform : "");
-  document.getElementById("dHours").value = e.hours;
-  document.getElementById("dReview").value = e.review;
-  document.getElementById("dNotes").value = e.notes || "";
-  pendingRating = e.rating;
-  renderStatusRow(e.status);
-  renderWishlistButton();
-  renderStars();
-  renderHistory();
-  document.getElementById("detailOverlay").classList.add("open");
-}
-
-function renderWishlistButton() {
-  const e = entries.find(x => x.id === currentId);
-  const btn = document.getElementById("wishlistToggle");
-  if (!e || !btn) return;
-  btn.textContent = e.wishlist ? "Remove from wishlist" : "Add to wishlist";
-  btn.classList.toggle("active", Boolean(e.wishlist));
-}
-
-function renderStatusRow(active) {
-  document.getElementById("statusRow").innerHTML = STATUSES.map(s =>
-    '<button class="' + (s === active ? "active" : "") + '" onclick="setStatus(\'' + s + '\')">' + s + '</button>'
-  ).join("");
-}
-
-function setStatus(s) {
-  const e = entries.find(x => x.id === currentId);
-  if (!e) return;
-  const prev = e.status;
-  e.status = s;
-  touchLastPlayed(e);
-  if (prev !== s) recordHistory(e, "status", "Status changed to " + s);
-  persist(); renderStatusRow(s); render();
-  if (s === "Completed" && e.rating === 0) toast("Finished! Now rate it out of 10.");
-}
-
-function renderStars() {
-  const el = document.getElementById("starRating");
-  const e = entries.find(x => x.id === currentId);
-  el.innerHTML = "";
-  for (let i = 1; i <= 10; i++) {
-    const sp = document.createElement("span");
-    sp.textContent = "\u2605";
-    if (i <= pendingRating) sp.classList.add("on");
-    sp.onclick = () => {
-      const prev = Number(e.rating) || 0;
-      pendingRating = (pendingRating === i) ? 0 : i;
-      e.rating = pendingRating;
-      if (prev !== e.rating) recordHistory(e, "rating", "Rating set to " + e.rating + "/10");
-      touchLastPlayed(e);
-      persist(); renderStars(); render();
-      toast(pendingRating ? "Rated " + pendingRating + "/10" : "Rating cleared");
+  <div class="toast" id="toast"></div>
+
+  <script>
+    "use strict";
+
+    const LS_KEY = "leaderboard_state_v1";
+    const STATUSES = ["Playing", "Completed", "Backlog", "On Hold", "Dropped", "Endless"];
+    const PALETTE = ["#ff3b3b", "#1fbf7a", "#3b82f6", "#f59e0b", "#8b5cf6", "#00b8d9"];
+
+    const defaultEntries = [
+      { id: 1, title: "Elden Ring", year: 2022, platform: "PC", status: "Playing", hours: 42, rating: 9, favorite: true, top5: true, wishlist: false, review: "Beautifully brutal. ", notes: "Need to finish the final area.", image: "", added: Date.now() - 1000 * 60 * 60 * 48 },
+      { id: 2, title: "Hades", year: 2020, platform: "PC", status: "Completed", hours: 31, rating: 10, favorite: false, top5: true, wishlist: false, review: "A perfect escalation loop.", notes: "Still one run to go.", image: "", added: Date.now() - 1000 * 60 * 60 * 24 * 3 },
+      { id: 3, title: "Celeste", year: 2018, platform: "Switch", status: "Completed", hours: 18, rating: 9, favorite: true, top5: false, wishlist: false, review: "The story lands hard.", notes: "One of the best platformers.", image: "", added: Date.now() - 1000 * 60 * 60 * 6 },
+      { id: 4, title: "Outer Wilds", year: 2019, platform: "PC", status: "Backlog", hours: 8, rating: 10, favorite: false, top5: true, wishlist: false, review: "Weird, brilliant, and short.", notes: "I keep meaning to sit down with it.", image: "", added: Date.now() - 1000 * 60 * 60 * 24 * 10 }
+    ];
+
+    const state = {
+      entries: [],
+      profile: { username: "", bio: "" },
+      view: "library",
+      filter: "All",
+      search: "",
+      sort: "recent",
+      currentId: null,
+      theme: "dark"
     };
-    el.appendChild(sp);
-  }
-}
 
-function renderHistory() {
-  const e = entries.find(x => x.id === currentId);
-  const box = document.getElementById("dHistory");
-  if (!e || !Array.isArray(e.history)) { box.innerHTML = "<div class='history-item'>No history yet.</div>"; return; }
-  box.innerHTML = e.history.map(h =>
-    '<div class="history-item"><strong>' + esc(h.type) + '</strong> &mdash; ' + esc(h.detail) + '<br><span>' + new Date(h.at).toLocaleString() + '</span></div>'
-  ).join("");
-}
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          state.entries = Array.isArray(parsed.entries) && parsed.entries.length ? parsed.entries : [...defaultEntries];
+          state.profile = Object.assign({ username: "", bio: "" }, parsed.profile || {});
+          if (parsed.view) state.view = parsed.view;
+          if (parsed.filter) state.filter = parsed.filter;
+          if (parsed.search) state.search = parsed.search;
+          if (parsed.sort) state.sort = parsed.sort;
+          if (parsed.theme) state.theme = parsed.theme;
+        } else {
+          state.entries = [...defaultEntries];
+        }
+      } catch (e) {
+        state.entries = [...defaultEntries];
+      }
+    }
 
-function saveHours() {
-  const e = entries.find(x => x.id === currentId);
-  if (!e) return;
-  e.hours = document.getElementById("dHours").value.trim();
-  touchLastPlayed(e);
-  recordHistory(e, "hours", "Hours updated to " + e.hours);
-  persist(); render();
-}
+    function persistState() {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        entries: state.entries,
+        profile: state.profile,
+        view: state.view,
+        filter: state.filter,
+        search: state.search,
+        sort: state.sort,
+        theme: state.theme
+      }));
+    }
 
-function saveReview() {
-  const e = entries.find(x => x.id === currentId);
-  if (!e) return;
-  e.review = document.getElementById("dReview").value;
-  if (e.review.trim()) recordHistory(e, "review", "Review updated");
-  touchLastPlayed(e);
-  persist(); render();
-}
+    function esc(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
 
-function saveNotes() {
-  const e = entries.find(x => x.id === currentId);
-  if (!e) return;
-  e.notes = document.getElementById("dNotes").value;
-  if (e.notes.trim()) recordHistory(e, "notes", "Notes updated");
-  touchLastPlayed(e);
-  persist(); render();
-}
+    function coverColor(title) {
+      let hash = 0;
+      for (const char of String(title || "")) hash = (hash * 31 + char.charCodeAt(0)) % 997;
+      return PALETTE[hash % PALETTE.length];
+    }
 
-function toggleWishlist() {
-  const e = entries.find(x => x.id === currentId);
-  if (!e) return;
-  e.wishlist = !e.wishlist;
-  touchLastPlayed(e);
-  recordHistory(e, "wishlist", e.wishlist ? "Added to wishlist" : "Removed from wishlist");
-  persist(); renderWishlistButton(); render();
-}
+    function safeImg(url) {
+      if (!url || typeof url !== "string") return "";
+      return /^https?:\/\//i.test(url) ? url : "";
+    }
 
-function removeEntry() {
-  const e = entries.find(x => x.id === currentId);
-  if (!e) return;
-  if (confirm("Remove \"" + e.title + "\" from your library?")) {
-    entries = entries.filter(x => x.id !== currentId);
-    currentId = null;
-    persist(); render(); closeModal("detailOverlay"); toast("Removed " + e.title);
-  }
-}
+    function stars(value) {
+      if (!value) return "";
+      let out = "";
+      for (let i = 1; i <= 10; i++) out += i <= Number(value) ? "★" : '<span class="off">★</span>';
+      return out;
+    }
 
-function openSettings() {
-  const keyInput = document.getElementById("sKey");
-  const proxyInput = document.getElementById("sProxy");
-  keyInput.value = settings.key || "";
-  proxyInput.value = settings.proxy || "";
-  document.getElementById("settingsOverlay").classList.add("open");
-}
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.remove("show"), 2200);
+    }
 
-function saveSettings() {
-  settings.key = document.getElementById("sKey").value.trim();
-  settings.proxy = document.getElementById("sProxy").value.trim();
-  persistSettings();
-  renderSourceBar();
-  closeModal("settingsOverlay");
-  toast("Settings saved");
-}
+    function setTheme(value) {
+      state.theme = value === "light" ? "light" : "dark";
+      document.body.classList.toggle("theme-light", state.theme === "light");
+      const btn = document.getElementById("themeToggle");
+      if (btn) btn.textContent = state.theme === "light" ? "☀️" : "🌙";
+      persistState();
+    }
 
-function testConnection() {
-  const key = document.getElementById("sKey").value.trim();
-  const proxy = document.getElementById("sProxy").value.trim();
-  const url = proxy ? proxy.replace(/\/+$/, "") + "/games?key=" + encodeURIComponent(key) : "https://api.rawg.io/api/games?key=" + encodeURIComponent(key);
-  fetch(url)
-    .then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
-    .then(() => { document.getElementById("testResult").textContent = "Connection looks good."; document.getElementById("testResult").style.color = "var(--green)"; })
-    .catch(err => { document.getElementById("testResult").textContent = "Connection failed: " + err.message; document.getElementById("testResult").style.color = "var(--red)"; });
-}
+    function toggleTheme() {
+      setTheme(state.theme === "light" ? "dark" : "light");
+      toast(state.theme === "light" ? "Light mode enabled" : "Dark mode enabled");
+    }
 
-function exportData() {
-  const data = JSON.stringify({ entries, myActivity }, null, 2);
-  document.getElementById("backupText").value = data;
-  navigator.clipboard?.writeText(data).then(() => toast("Library exported to clipboard"));
-}
+    function switchTab(tabName) {
+      state.view = tabName;
+      document.getElementById("tab-library").classList.toggle("active", tabName === "library");
+      document.getElementById("tab-wishlist").classList.toggle("active", tabName === "wishlist");
+      document.getElementById("tab-activity").classList.toggle("active", tabName === "activity");
+      document.getElementById("tab-stats").classList.toggle("active", tabName === "stats");
+      document.getElementById("tab-profile").classList.toggle("active", tabName === "profile");
 
-function importData() {
-  const text = document.getElementById("backupText").value.trim();
-  if (!text) { toast("Paste backup JSON first"); return; }
-  try {
-    const parsed = JSON.parse(text);
-    if (Array.isArray(parsed.entries)) entries = parsed.entries;
-    if (Array.isArray(parsed.myActivity)) myActivity = parsed.myActivity;
-    persist(); render(); toast("Library imported");
-  } catch (e) {
-    toast("That JSON doesn't look valid");
-  }
-}
+      document.getElementById("view-library").style.display = tabName === "library" ? "" : "none";
+      document.getElementById("view-wishlist").style.display = tabName === "wishlist" ? "" : "none";
+      document.getElementById("view-activity").style.display = tabName === "activity" ? "" : "none";
+      document.getElementById("view-stats").style.display = tabName === "stats" ? "" : "none";
+      document.getElementById("view-profile").style.display = tabName === "profile" ? "" : "none";
 
-loadState();
-render();
-</script>
+      render();
+      persistState();
+    }
+
+    function setSearchQuery(value) {
+      state.search = value || "";
+      persistState();
+      render();
+    }
+
+    function setSortMode(value) {
+      state.sort = value || "recent";
+      persistState();
+      render();
+    }
+
+    function getVisibleEntries() {
+      const query = (state.search || "").trim().toLowerCase();
+      let list = [...state.entries];
+
+      if (state.view === "wishlist") {
+        list = list.filter(entry => entry.wishlist);
+      }
+
+      if (state.filter === "Favorites") list = list.filter(entry => entry.favorite);
+      else if (state.filter === "Recent") list = list.filter(entry => entry.added && Date.now() - Number(entry.added) <= 30 * 24 * 60 * 60 * 1000);
+      else if (state.filter === "Wishlist") list = list.filter(entry => entry.wishlist);
+      else if (STATUSES.includes(state.filter)) list = list.filter(entry => entry.status === state.filter);
+
+      const needle = query;
+      if (needle) {
+        list = list.filter(entry => [entry.title, entry.platform, entry.status, entry.notes, entry.review].join(" ").toLowerCase().includes(needle));
+      }
+
+      list.sort((a, b) => {
+        switch (state.sort) {
+          case "title":
+            return String(a.title).localeCompare(String(b.title)) || Number(b.added || 0) - Number(a.added || 0);
+          case "rating":
+            return Number(b.rating || 0) - Number(a.rating || 0) || Number(b.added || 0) - Number(a.added || 0);
+          case "hours":
+            return Number(b.hours || 0) - Number(a.hours || 0) || Number(b.added || 0) - Number(a.added || 0);
+          case "status":
+            return STATUSES.indexOf(a.status) - STATUSES.indexOf(b.status) || Number(b.added || 0) - Number(a.added || 0);
+          case "recent":
+          default:
+            return Number(b.added || 0) - Number(a.added || 0);
+        }
+      });
+
+      return list;
+    }
+
+    function renderFilters() {
+      const base = ["All", "Favorites", "Recent", ...STATUSES];
+      const existing = new Set(base);
+      const platformNames = [...new Set(state.entries.map(entry => entry.platform).filter(Boolean))].sort();
+      const options = [...base, ...platformNames.filter(p => !existing.has(p)), "Wishlist"];
+      document.getElementById("filters").innerHTML = options.map(value => {
+        const active = value === state.filter ? "active" : "";
+        return `<button class="${active}" onclick="setFilter('${value}')">${value}</button>`;
+      }).join("");
+    }
+
+    function setFilter(value) {
+      state.filter = value;
+      persistState();
+      render();
+    }
+
+    function renderSourceBar() {
+      document.getElementById("sourceBar").innerHTML = '<span class="dot on"></span> Local browser data only';
+    }
+
+    function renderLibrary() {
+      const shelf = document.getElementById("libraryShelf");
+      const empty = document.getElementById("emptyState");
+      const list = getVisibleEntries();
+
+      shelf.innerHTML = list.map(entry => {
+        const img = safeImg(entry.image);
+        const bg = img ? "" : `background:${coverColor(entry.title)}`;
+        const topBadge = entry.top5 ? '<span class="badge" style="color:#ffd166;">Top 5</span>' : `<span class="badge" style="color:${statusColor(entry.status)}">${esc(entry.status)}</span>`;
+        const favorite = entry.favorite ? '★' : '☆';
+        const recentTag = entry.added && Date.now() - Number(entry.added) <= 7 * 24 * 60 * 60 * 1000 ? '<span class="recent-tag">New</span>' : '';
+        const inner = img ? `<img src="${img}" alt="${esc(entry.title)}" /><div class="shade"></div>` : `<div class="shade"></div>`;
+
+        return `
+          <div class="game-card" onclick="openDetail(${entry.id})">
+            <div class="cover" style="${bg}">
+              <button class="favorite-btn ${entry.favorite ? "on" : ""}" onclick="toggleFavorite(event, ${entry.id})">${favorite}</button>
+              ${topBadge}
+              ${inner}
+              ${!img ? `<span class="initial">${esc((entry.title || "?").slice(0, 2).toUpperCase())}</span>` : ""}
+            </div>
+            <h3>${esc(entry.title)}</h3>
+            <div class="meta-row">
+              <span>${esc(entry.year || "")}${entry.hours ? ` · ${esc(entry.hours)}h` : ""}</span>
+              ${recentTag}
+            </div>
+            ${entry.rating ? `<div class="stars">${stars(entry.rating)}</div>` : ""}
+          </div>
+        `;
+      }).join("");
+
+      empty.style.display = state.entries.length ? "none" : "";
+      shelf.style.display = list.length ? "" : "none";
+    }
+
+    function renderWishlist() {
+      const box = document.getElementById("wishlistShelf");
+      const list = state.entries.filter(entry => entry.wishlist);
+      box.innerHTML = list.length ? list.map(entry => {
+        const img = safeImg(entry.image);
+        const bg = img ? "" : `background:${coverColor(entry.title)}`;
+        const inner = img ? `<img src="${img}" alt="${esc(entry.title)}" /><div class="shade"></div>` : `<div class="shade"></div>`;
+        return `
+          <div class="game-card" onclick="openDetail(${entry.id})">
+            <div class="cover" style="${bg}">
+              <span class="badge" style="color:${statusColor(entry.status)}">Wish</span>
+              ${inner}
+              ${!img ? `<span class="initial">${esc((entry.title || "?").slice(0, 2).toUpperCase())}</span>` : ""}
+            </div>
+            <h3>${esc(entry.title)}</h3>
+            <div class="meta-row"><span>${esc(entry.year || "")}</span></div>
+          </div>
+        `;
+      }).join("") : '<div class="empty-state" style="width:100%"><h2>No wishlist entries</h2><p>Mark a game as wishlist from its detail view.</p></div>';
+    }
+
+    function renderActivity() {
+      const feed = document.getElementById("feed");
+      const items = state.entries
+        .filter(entry => entry.review || entry.notes || entry.status)
+        .slice(0, 8)
+        .map(entry => `
+          <div class="activity-item">
+            <div class="avatar">${esc((entry.title || "?").slice(0, 1).toUpperCase())}</div>
+            <div>
+              <div class="meta">${esc(entry.status)} · ${new Date(entry.added || Date.now()).toLocaleDateString()}</div>
+              <strong>${esc(entry.title)}</strong>
+              ${entry.review ? `<p>${esc(entry.review)}</p>` : ""}
+              ${entry.notes ? `<p><em>${esc(entry.notes)}</em></p>` : ""}
+            </div>
+          </div>
+        `)
+        .join("");
+
+      feed.innerHTML = items || '<div class="panel"><p class="muted-note">Log a few games to populate activity.</p></div>';
+    }
+
+    function renderStats() {
+      const counts = {};
+      for (const entry of state.entries) counts[entry.status] = (counts[entry.status] || 0) + 1;
+      const rated = state.entries.filter(entry => Number(entry.rating) > 0);
+      const avg = rated.length ? (rated.reduce((sum, entry) => sum + Number(entry.rating), 0) / rated.length).toFixed(1) : "—";
+      const topGames = [...state.entries].filter(entry => Number(entry.hours) > 0).sort((a, b) => Number(b.hours) - Number(a.hours)).slice(0, 3);
+
+      document.getElementById("statsSummary").innerHTML = [
+        `<div class="stat-chip">Games <b>${state.entries.length}</b></div>`,
+        `<div class="stat-chip">Completed <b>${counts.Completed || 0}</b></div>`,
+        `<div class="stat-chip">Playing <b>${counts.Playing || 0}</b></div>`,
+        `<div class="stat-chip">Avg rating <b>${avg}</b></div>`,
+        `<div class="stat-chip">Wishlist <b>${state.entries.filter(entry => entry.wishlist).length}</b></div>`
+      ].join("");
+
+      const leaderboard = document.getElementById("leaderboardPanel");
+      leaderboard.innerHTML = topGames.length ? `
+        <h3>Most played</h3>
+        <div class="leaderboard-list">
+          ${topGames.map((entry, index) => `
+            <div class="leader-item">
+              <span class="leader-rank">${index + 1}</span>
+              <span class="leader-name">${esc(entry.title)}</span>
+              <span class="leader-hours">${entry.hours}h</span>
+            </div>
+          `).join("")}
+        </div>
+      ` : '<h3>Most played</h3><p class="muted-note">Add hours to games to unlock the leaderboard.</p>';
+
+      const ratingPanel = document.getElementById("ratingPanel");
+      const bucket = Array.from({ length: 10 }, (_, index) => index + 1).map(score => ({ score, count: state.entries.filter(entry => Number(entry.rating) === score).length }));
+      const max = Math.max(...bucket.map(item => item.count), 1);
+      ratingPanel.innerHTML = `
+        <h3>Ratings</h3>
+        <div class="leaderboard-list">
+          ${bucket.map(item => `
+            <div class="leader-item">
+              <span class="leader-rank" style="width:26px; height:26px;">${item.score}</span>
+              <div style="flex:1; position:relative; height:10px; border-radius:999px; background: rgba(255,255,255,0.06); overflow:hidden; border:1px solid var(--border);">
+                <div style="position:absolute; inset:0 auto 0 0; width:${(item.count / max) * 100}%; background:linear-gradient(90deg, var(--gold), var(--accent)); border-radius:inherit;"></div>
+              </div>
+              <span class="leader-hours">${item.count}</span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderProfile() {
+      const usernameInput = document.getElementById("profileUsername");
+      const bioInput = document.getElementById("profileBio");
+      const avatar = document.getElementById("profileAvatar");
+      const top5List = document.getElementById("top5List");
+
+      usernameInput.value = state.profile.username || "";
+      bioInput.value = state.profile.bio || "";
+      avatar.textContent = (state.profile.username || "U").slice(0, 1).toUpperCase();
+
+      const top5 = state.entries.filter(entry => entry.top5).slice(0, 5);
+      top5List.innerHTML = top5.length ? top5.map(entry => `
+        <div class="top5-item">
+          <div class="game-name">${esc(entry.title)}</div>
+          <button onclick="openDetail(${entry.id})">View</button>
+        </div>
+      `).join("") : '<p class="muted-note">No games selected yet. Open a game and toggle “Top 5” to add it here.</p>';
+    }
+
+    function render() {
+      renderSourceBar();
+      renderFilters();
+      renderLibrary();
+      renderWishlist();
+      renderActivity();
+      renderStats();
+      renderProfile();
+
+      document.getElementById("librarySearch").value = state.search || "";
+      document.getElementById("sortSelect").value = state.sort || "recent";
+      setTheme(state.theme);
+    }
+
+    function statusColor(status) {
+      const map = {
+        "Playing": "#3b82f6",
+        "Completed": "#22c55e",
+        "Backlog": "#a5bfd3",
+        "On Hold": "#fbbf24",
+        "Dropped": "#ef4444",
+        "Endless": "#8b5cf6"
+      };
+      return map[status] || "#ffffff";
+    }
+
+    function openAddModal() {
+      document.getElementById("addOverlay").classList.add("open");
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("open");
+    }
+
+    function addManualGame() {
+      const title = document.getElementById("manualTitle").value.trim();
+      const year = document.getElementById("manualYear").value.trim();
+      const platform = document.getElementById("manualPlatform").value.trim();
+      if (!title) {
+        toast("Add a game title first.");
+        return;
+      }
+
+      const entry = {
+        id: Date.now() + Math.random(),
+        title,
+        year: year || new Date().getFullYear(),
+        platform: platform || "PC",
+        status: "Playing",
+        hours: "",
+        rating: 0,
+        favorite: false,
+        top5: false,
+        wishlist: false,
+        review: "",
+        notes: "",
+        image: "",
+        added: Date.now()
+      };
+
+      state.entries.unshift(entry);
+      persistState();
+      closeModal("addOverlay");
+      document.getElementById("manualTitle").value = "";
+      document.getElementById("manualYear").value = "";
+      document.getElementById("manualPlatform").value = "";
+      render();
+      toast("Game added to library.");
+    }
+
+    function openDetail(id) {
+      const entry = state.entries.find(item => Number(item.id) === Number(id));
+      if (!entry) return;
+      state.currentId = Number(id);
+
+      document.getElementById("detailTitle").textContent = entry.title;
+      document.getElementById("detailMeta").textContent = [entry.year || "Unknown", entry.platform || "PC"].filter(Boolean).join(" • ");
+
+      const row = document.getElementById("statusRow");
+      row.innerHTML = STATUSES.map(status => `
+        <button class="${entry.status === status ? "active" : ""}" onclick="setStatus('${status}')">${status}</button>
+      `).join("");
+
+      const wishlistButton = document.getElementById("wishlistToggle");
+      wishlistButton.textContent = entry.wishlist ? "In wishlist" : "Add to wishlist";
+      wishlistButton.classList.toggle("active", !!entry.wishlist);
+
+      const topButton = document.getElementById("top5Toggle");
+      topButton.textContent = entry.top5 ? "In Top 5" : "Add to Top 5";
+      topButton.classList.toggle("active", !!entry.top5);
+
+      const starsEl = document.getElementById("detailRating");
+      starsEl.innerHTML = Array.from({ length: 10 }, (_, index) => {
+        const value = index + 1;
+        return `<span class="${value <= Number(entry.rating || 0) ? "on" : ""}" data-value="${value}" onclick="setRating(${value})">★</span>`;
+      }).join("");
+
+      document.getElementById("detailHours").value = entry.hours || "";
+      document.getElementById("detailReview").value = entry.review || "";
+      document.getElementById("detailNotes").value = entry.notes || "";
+
+      document.getElementById("detailOverlay").classList.add("open");
+    }
+
+    function setStatus(status) {
+      const entry = state.entries.find(item => Number(item.id) === Number(state.currentId));
+      if (!entry) return;
+      entry.status = status;
+      entry.added = entry.added || Date.now();
+      persistState();
+      render();
+      openDetail(entry.id);
+    }
+
+    function toggleWishlist() {
+      const entry = state.entries.find(item => Number(item.id) === Number(state.currentId));
+      if (!entry) return;
+      entry.wishlist = !entry.wishlist;
+      persistState();
+      render();
+      openDetail(entry.id);
+    }
+
+    function toggleTop5Status() {
+      const entry = state.entries.find(item => Number(item.id) === Number(state.currentId));
+      if (!entry) return;
+      const count = state.entries.filter(item => item.top5).length;
+
+      if (!entry.top5 && count >= 5) {
+        toast("Your Top 5 is full. Remove one before adding another.");
+        return;
+      }
+
+      entry.top5 = !entry.top5;
+      persistState();
+      render();
+      openDetail(entry.id);
+    }
+
+    function setRating(value) {
+      const entry = state.entries.find(item => Number(item.id) === Number(state.currentId));
+      if (!entry) return;
+      entry.rating = value;
+      persistState();
+      render();
+      openDetail(entry.id);
+    }
+
+    function saveHours() {
+      const entry = state.entries.find(item => Number(item.id) === Number(state.currentId));
+      if (!entry) return;
+      entry.hours = document.getElementById("detailHours").value.trim();
+      persistState();
+      render();
+    }
+
+    function saveReview() {
+      const entry = state.entries.find(item => Number(item.id) === Number(state.currentId));
+      if (!entry) return;
+      entry.review = document.getElementById("detailReview").value;
+      persistState();
+      render();
+    }
+
+    function saveNotes() {
+      const entry = state.entries.find(item => Number(item.id) === Number(state.currentId));
+      if (!entry) return;
+      entry.notes = document.getElementById("detailNotes").value;
+      persistState();
+      render();
+    }
+
+    function toggleFavorite(event, id) {
+      event.stopPropagation();
+      const entry = state.entries.find(item => Number(item.id) === Number(id));
+      if (!entry) return;
+      entry.favorite = !entry.favorite;
+      persistState();
+      render();
+    }
+
+    function removeEntry() {
+      const entry = state.entries.find(item => Number(item.id) === Number(state.currentId));
+      if (!entry) return;
+      state.entries = state.entries.filter(item => Number(item.id) !== Number(entry.id));
+      persistState();
+      closeModal("detailOverlay");
+      render();
+      toast("Game removed from library.");
+    }
+
+    document.getElementById("profileUsername").addEventListener("input", (event) => {
+      state.profile.username = event.target.value;
+      persistState();
+      renderProfile();
+    });
+
+    document.getElementById("profileBio").addEventListener("input", (event) => {
+      state.profile.bio = event.target.value;
+      persistState();
+    });
+
+    loadState();
+    render();
+    switchTab(state.view);
+  </script>
 </body>
 </html>
