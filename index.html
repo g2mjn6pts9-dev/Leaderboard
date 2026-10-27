@@ -306,13 +306,13 @@
 <header>
   <div class="logo">leader<span>board</span></div>
   <nav>
-    <button id="tab-shelf" class="active" onclick="switchTab('shelf')">Shelf</button>
+    <button id="tab-shelf" class="active" onclick="switchTab('shelf')">Library</button>
     <button id="tab-wishlist" onclick="switchTab('wishlist')">Wishlist</button>
     <button id="tab-activity" onclick="switchTab('activity')">Activity</button>
   </nav>
   <div class="header-right">
     <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="Theme toggle">🌙</button>
-    <button class="icon-btn" id="settingsBtn" onclick="openSettings()" title="Data source settings">&#9881;</button>
+    <button class="icon-btn" id="settingsBtn" onclick="openSettings()" title="Data source settings">⚙</button>
     <button class="btn" onclick="openAdd()">+ Log</button>
   </div>
 </header>
@@ -326,7 +326,7 @@
     <div class="toolbar">
       <div class="search-wrap">
         <span aria-hidden="true">🔎</span>
-        <input id="shelfSearch" type="text" placeholder="Search your shelf..." oninput="setSearchQuery(this.value)">
+        <input id="shelfSearch" type="text" placeholder="Search your library..." oninput="setSearchQuery(this.value)">
       </div>
       <select id="sortSelect" onchange="setSortMode(this.value)">
         <option value="recent">Recently added</option>
@@ -339,7 +339,7 @@
     <div class="filters" id="filters"></div>
     <div class="shelf" id="shelf"></div>
     <div class="empty-state" id="empty" style="display:none">
-      <h2>Your shelf is empty</h2>
+      <h2>Your library is empty</h2>
       <p>Hit &ldquo;+ Log&rdquo; and add the first game. Everything saves in your browser.</p>
     </div>
   </section>
@@ -490,7 +490,7 @@ const CATALOG = [
 ];
 
 const STATUSES = ["Playing","Completed","Backlog","On Hold","Dropped","Endless"];
-const STATUS_COLORS = { "Playing":"#34d399","Completed":"#ff3b3b","Backlog":"#a5bfd3","On Hold":"#ffd166","Dropped":"#ff5a5a","Endless":"#5cc8ff" };
+const STATUS_COLORS = { "Playing":"#3b82f6","Completed":"#22c55e","Backlog":"#a5bfd3","On Hold":"#ffd166","Dropped":"#ef4444","Endless":"#60a5fa" };
 const PALETTE = ["#ff3b3b","#173d5e","#1fbf7a","#d54f4f","#2d7d69","#ff7e5f","#0f3a52","#1d8f70"];
 
 const FRIENDS = [
@@ -999,52 +999,45 @@ function renderStars() {
       const prev = Number(e.rating) || 0;
       pendingRating = (pendingRating === i) ? 0 : i;
       e.rating = pendingRating;
-      if (prev !== pendingRating) {
-        recordHistory(e, "rating", pendingRating ? "Rated the game " + pendingRating + "/10" : "Removed the rating");
-      }
-      if (pendingRating) {
-        const already = myActivity.find(a => a.game === e.title && a.rating);
-        if (!already) myActivity.unshift({ at: Date.now(), game: e.title, rating: pendingRating, review: e.review });
-      }
-      persist(); renderStars(); render(); renderHistory();
+      if (prev !== e.rating) recordHistory(e, "rating", "Rating set to " + e.rating + "/10");
+      persist(); renderStars(); render();
+      toast(pendingRating ? "Rated " + pendingRating + "/10" : "Rating cleared");
     };
     el.appendChild(sp);
   }
 }
 
+function renderHistory() {
+  const e = entries.find(x => x.id === currentId);
+  const box = document.getElementById("dHistory");
+  if (!e || !Array.isArray(e.history)) { box.innerHTML = "<div class='history-item'>No history yet.</div>"; return; }
+  box.innerHTML = e.history.map(h =>
+    '<div class="history-item"><strong>' + esc(h.type) + '</strong> &mdash; ' + esc(h.detail) + '<br><span>' + new Date(h.at).toLocaleString() + '</span></div>'
+  ).join("");
+}
+
 function saveHours() {
   const e = entries.find(x => x.id === currentId);
   if (!e) return;
-  const val = document.getElementById("dHours").value.trim();
-  if (e.hours !== val) {
-    e.hours = val;
-    recordHistory(e, "hours", "Updated hours to " + (val || "0") + "h");
-    persist(); render();
-  }
+  e.hours = document.getElementById("dHours").value.trim();
+  recordHistory(e, "hours", "Hours updated to " + e.hours);
+  persist(); render();
 }
 
 function saveReview() {
   const e = entries.find(x => x.id === currentId);
   if (!e) return;
-  const val = document.getElementById("dReview").value.trim();
-  if (e.review !== val) {
-    e.review = val;
-    const act = myActivity.find(a => a.game === e.title && a.rating);
-    if (act) act.review = e.review;
-    recordHistory(e, "review", "Updated review");
-    persist(); render();
-  }
+  e.review = document.getElementById("dReview").value;
+  if (e.review.trim()) recordHistory(e, "review", "Review updated");
+  persist(); render();
 }
 
 function saveNotes() {
   const e = entries.find(x => x.id === currentId);
   if (!e) return;
-  const val = document.getElementById("dNotes").value.trim();
-  if (e.notes !== val) {
-    e.notes = val;
-    recordHistory(e, "notes", "Updated notes");
-    persist(); renderHistory();
-  }
+  e.notes = document.getElementById("dNotes").value;
+  if (e.notes.trim()) recordHistory(e, "notes", "Notes updated");
+  persist(); render();
 }
 
 function toggleWishlist() {
@@ -1052,31 +1045,24 @@ function toggleWishlist() {
   if (!e) return;
   e.wishlist = !e.wishlist;
   recordHistory(e, "wishlist", e.wishlist ? "Added to wishlist" : "Removed from wishlist");
-  persist(); render(); renderHistory();
-  toast(e.wishlist ? "Added to wishlist" : "Removed from wishlist");
-}
-
-function renderHistory() {
-  const e = entries.find(x => x.id === currentId);
-  const box = document.getElementById("dHistory");
-  if (!e || !box) return;
-  const items = Array.isArray(e.history) ? e.history : [];
-  box.innerHTML = items.length
-    ? items.map(item => '<div class="history-item"><strong>' + esc(item.type) + '</strong> · ' + esc(item.detail) + '<br><span>' + new Date(item.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + '</span></div>').join("")
-    : '<div class="history-item">No activity yet.</div>';
+  persist(); renderWishlistButton(); render();
 }
 
 function removeEntry() {
-  entries = entries.filter(x => x.id !== currentId);
-  persist(); render(); closeModal("detailOverlay");
-  toast("Removed from shelf");
+  const e = entries.find(x => x.id === currentId);
+  if (!e) return;
+  if (confirm("Remove \"" + e.title + "\" from your library?")) {
+    entries = entries.filter(x => x.id !== currentId);
+    currentId = null;
+    persist(); render(); closeModal("detailOverlay"); toast("Removed " + e.title);
+  }
 }
 
 function openSettings() {
-  document.getElementById("sKey").value = settings.key;
-  document.getElementById("sProxy").value = settings.proxy;
-  document.getElementById("backupText").value = "";
-  document.getElementById("testResult").textContent = "";
+  const keyInput = document.getElementById("sKey");
+  const proxyInput = document.getElementById("sProxy");
+  keyInput.value = settings.key || "";
+  proxyInput.value = settings.proxy || "";
   document.getElementById("settingsOverlay").classList.add("open");
 }
 
@@ -1084,68 +1070,41 @@ function saveSettings() {
   settings.key = document.getElementById("sKey").value.trim();
   settings.proxy = document.getElementById("sProxy").value.trim();
   persistSettings();
-  sessionStorage.clear();
+  renderSourceBar();
   closeModal("settingsOverlay");
-  render();
-  toast(isConfigured() ? "RAWG connected" : "Using built-in catalog");
+  toast("Settings saved");
 }
 
-async function testConnection() {
-  const out = document.getElementById("testResult");
+function testConnection() {
   const key = document.getElementById("sKey").value.trim();
   const proxy = document.getElementById("sProxy").value.trim();
-  out.className = "hint";
-  out.textContent = "Testing…";
-  const params = { page_size: 1 };
-  if (key) params.key = key;
-  const url = proxy
-    ? proxy.replace(/\/+$/, "") + "/games?" + new URLSearchParams(params).toString()
-    : RAWG_BASE + "/games?" + new URLSearchParams(params).toString();
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    out.textContent = "Working — RAWG reports " + (data.count != null ? data.count.toLocaleString() : "?") + " games.";
-  } catch (err) {
-    out.className = "hint warn";
-    out.textContent = "Failed: " + err.message + ". Check the key, or set up a proxy if this is a CORS error.";
-  }
+  const url = proxy ? proxy.replace(/\/+$/, "") + "/games?key=" + encodeURIComponent(key) : "https://api.rawg.io/api/games?key=" + encodeURIComponent(key);
+  fetch(url)
+    .then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
+    .then(() => { document.getElementById("testResult").textContent = "Connection looks good."; document.getElementById("testResult").style.color = "var(--green)"; })
+    .catch(err => { document.getElementById("testResult").textContent = "Connection failed: " + err.message; document.getElementById("testResult").style.color = "var(--red)"; });
 }
 
 function exportData() {
-  const payload = JSON.stringify({ entries, myActivity }, null, 2);
-  const textArea = document.getElementById("backupText");
-  textArea.value = payload;
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(payload).then(() => toast("Copied library JSON to clipboard"));
-  } else {
-    toast("Backup JSON generated in the text box");
-  }
+  const data = JSON.stringify({ entries, myActivity }, null, 2);
+  document.getElementById("backupText").value = data;
+  navigator.clipboard?.writeText(data).then(() => toast("Library exported to clipboard"));
 }
 
 function importData() {
   const text = document.getElementById("backupText").value.trim();
-  if (!text) { toast("Paste JSON first"); return; }
+  if (!text) { toast("Paste backup JSON first"); return; }
   try {
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed.entries)) entries = parsed.entries;
     if (Array.isArray(parsed.myActivity)) myActivity = parsed.myActivity;
-    entries = entries.map(e => ({
-      ...e,
-      wishlist: Boolean(e.wishlist),
-      notes: e.notes || "",
-      history: Array.isArray(e.history) ? e.history : [{ type: "added", detail: "Imported from backup", at: Date.now() }]
-    }));
-    persist();
-    render();
-    toast("Imported library data");
-  } catch (err) {
-    toast("That JSON is invalid");
+    persist(); render(); toast("Library imported");
+  } catch (e) {
+    toast("That JSON doesn't look valid");
   }
 }
 
 loadState();
-applyTheme(theme);
 render();
 </script>
 </body>
